@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Build-Jdk-Spec: 17
+Implementation-Title: backend-process
+Implementation-Version: 0.0.1
+Main-Class: com.glocks.parser.CdrParserProcess
+Created-By: Maven Integration for Eclipse
+
