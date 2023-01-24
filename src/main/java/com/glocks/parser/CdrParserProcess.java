@@ -183,24 +183,17 @@ public class CdrParserProcess {
 //                         device_info.put("raw_cdr_file_name", data[6].trim());
 //                         device_info.put("imei_arrival_time",     data [7].trim().substring(data [7].trim().indexOf("202"), data [7].trim().indexOf("202") + 8));
                     String imei_arrivalTime = null;
+                   
+//                  Below part of code change is done for the handling of arrival time which receiving in YY format.
+//                  code starts here in reference of Ticket - MP-94[CDR cell card files are not processing from JAN 2023]   
                     if (data[7].trim().startsWith("20")) {
-                        imei_arrivalTime = data[7].trim().startsWith("202") ? data[7].trim() : "20" + data[7].trim();
-                    } else if (data[7].trim().startsWith("21")) {
+                        imei_arrivalTime =  data[7].trim();
+                        logger.info("imei_arrival_time Starts with YYYY " +imei_arrivalTime);
+                    } else {
                         imei_arrivalTime = "20" + data[7].trim();
+                        logger.info("imei_arrival_time Starts with YY "  +imei_arrivalTime);
                     }
-                    else if (data[7].trim().startsWith(propertyReader.getPropValue("pastYear"))) {
-                    	imei_arrivalTime = data[7].trim().startsWith("202") ? data[7].trim() : "20" + data[7].trim();
-                    	logger.info("imei_arrivalTime for the past year: " +propertyReader.getPropValue("pastYear"));	
-                    }else if (data[7].trim().startsWith(propertyReader.getPropValue("currentYear"))) {
-                    	imei_arrivalTime = data[7].trim().startsWith("202") ? data[7].trim() : "20" + data[7].trim();
-                    	logger.info("imei_arrivalTime for the Current year: " +propertyReader.getPropValue("currentYear"));
-                    }else if (data[7].trim().startsWith(propertyReader.getPropValue("futureYear"))) {
-                    	imei_arrivalTime = data[7].trim().startsWith("202") ? data[7].trim() : "20" + data[7].trim();
-                    	logger.info("imei_arrivalTime for the future year: " +propertyReader.getPropValue("futureYear"));
-                    }else {
-                        imei_arrivalTime = data[7].trim().substring(data[7].trim().indexOf("202"), (data[7].trim().indexOf("202") + 8));
-                        logger.info("imei in ese");
-                    }
+//                  code Ends here
                     imei_arrivalTime= imei_arrivalTime.substring(0,8);
                     device_info.put("imei_arrival_time", imei_arrivalTime);
                     device_info.put("operator", operator.trim());
