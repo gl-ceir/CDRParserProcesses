@@ -620,7 +620,7 @@ public class FeatureForSingleStolenBlock {
         Statement st5 = null;
         try {
             st5 = conn.createStatement();
-            st5.executeQuery(query);
+            st5.executeUpdate(query);
             logger.info("delete from Raw table");
         } catch (Exception e) {
             logger.error("Error at  " + e);
