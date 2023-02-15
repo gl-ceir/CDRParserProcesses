@@ -56,7 +56,7 @@ public class DeleteFromBlackList {
           try {
                logger.info(" " + raw_query);
                stmt = conn.createStatement();
-               stmt.executeQuery(raw_query);
+               stmt.executeUpdate(raw_query);
           } catch (Exception e) {
                logger.warn("  " + e);
           } finally {
