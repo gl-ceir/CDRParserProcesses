@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -13,21 +14,60 @@ class tester {
 
     public static void main(String[] args) {
 
-        String a = new String("HI");
-        String b = new String("HI");
+        String created_on = "2020-11-11.0.0. 0. 0";
+        String modified_on = "2020-9-21.11.0. 9. 471000000";
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-M-yy.HH.mm.ss");
 
-        String c = a;
+        Date d1 = null;
+        Date d2 = null;
+        long diff = 0L;
+        try {
+            d1 = format.parse(created_on);
+            d2 = format.parse(modified_on);
+            diff = d2.getTime() - d1.getTime();
+            System.out.println("D1  " + d1);
+            System.out.println("diff  " + diff);
 
-        if (c == a) {
-            System.out.println(" = =");
-        } else {
-            System.out.println(" =!! =");
+            Date dt = new SimpleDateFormat("yyyyMMdd").parse("20220411");
+            Date dt2 = new SimpleDateFormat("yyyy-MM-dd").parse("2022-01-14 00:00:00");
+            System.out.println("Date compare " + dt.compareTo(dt2));
+            
+
+            System.out.println("Date 1 " + new SimpleDateFormat("yyyyMMdd").parse("20220411"));
+
+//            SimpleDateFormat String dateInString = "20220411";
+//            LocalDate date = LocalDate.parse(dateInString, DateTimeFormatter.BASIC_ISO_DATE);
+//            System.out.println("Date 3 " + date);
+
+            String dateInString1 = "2022-09-14 00:00:00";
+            LocalDate date1 = LocalDate.parse(dateInString1);
+
+            System.out.println("Date 4 " + date1);
+
+            LocalDateTime dateTime = LocalDateTime.parse("2022-09-14 00:00:00");
+
+//            Date date = new Date("20220411");
+//            SimpleDateFormat DateFor = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//            String stringDate = DateFor.format(date);
+//            System.out.println("Date 3 " + stringDate);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        a = a.concat("ypp");
-         
-        System.out.println("" + a);
-
+//        String a = new String("HI");
+//        String b = new String("HI");
+//
+//        String c = a;
+//
+//        if (c == a) {
+//            System.out.println(" = =");
+//        } else {
+//            System.out.println(" =!! =");
+//        }
+//
+//        a = a.concat("ypp");
+//         
+//        System.out.println("" + a);
 //        String basePath = "/home/user/Music/testDataFiles/aa";
 //
 //        File logDir = new File(basePath);

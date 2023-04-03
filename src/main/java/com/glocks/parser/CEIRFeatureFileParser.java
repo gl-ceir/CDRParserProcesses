@@ -302,7 +302,7 @@ public class CEIRFeatureFileParser {
         map.put("divceStatus", divceStatus);
         map.put("user_id", user_id);
 
-        if (txnId == null) {
+        if (txnId == null  || txnId.equals("")) {
             map.put("source_type", "");
             map.put("request_type", "");
             map.put("reason", "");
