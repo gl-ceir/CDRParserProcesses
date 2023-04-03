@@ -316,8 +316,8 @@ public class FeatureForSingleStolenBlock {
 //                }
 
                 if (i == 1) {
-                    if (map.get("contact_number") == null && map.get("imei_esn_meid") == null) {            //      //msisdn is 
-                        logger.info(" neither msisdn nor imei ");
+                    if ( (map.get("contact_number") == null  || map.get("contact_number").equals("")   ) &&   (  map.get("imei_esn_meid") == null   || map.get("imei_esn_meid").equals("")    )  ){            //      //msisdn is 
+                        logger.info(" neither msisdn nor imei "); 
                         ErrorFileGenrator errFile = new ErrorFileGenrator();
                         errFile.gotoErrorFile(conn, txn_id, "Error Code :CON_RULE_0027, Error Description :  Neither IMEI/ESN/MEID nor Msisdn is provided for  " + (map.get("request_type").equals("1") ? "Recovery" : "Unblocking") + " ");
                         failPasstatusUpdator(conn, map, 1);  // reject
@@ -620,7 +620,7 @@ public class FeatureForSingleStolenBlock {
         Statement st5 = null;
         try {
             st5 = conn.createStatement();
-            st5.executeQuery(query);
+            st5.executeUpdate(query);
             logger.info("delete from Raw table");
         } catch (Exception e) {
             logger.error("Error at  " + e);
