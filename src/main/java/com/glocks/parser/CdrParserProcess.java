@@ -113,7 +113,7 @@ public class CdrParserProcess {
         propertyReader = new PropertyReader();
         String my_query = null;
         HashMap<String, String> my_rule_detail;
-        String failed_rule_name = null;
+        String failed_rule_name = "";
         int failed_rule_id = 0;
         String finalAction = "";
         int usageInsert = 0;
@@ -203,17 +203,19 @@ public class CdrParserProcess {
                     sourceTacList.add(device_info.get("IMEI").substring(0, 8));
                     device_info.put("tac", device_info.get("IMEI").substring(0, 8));
                     my_rule_detail = rule_filter.getMyRule(conn, device_info, rulelist);
-                    logger.debug("getMyRule done");
-                    if (my_rule_detail.get("rule_name").equals("")  &&   my_rule_detail.get("rule_name") != null  ) {
+                    logger.debug("getMyRule done with rule name " + my_rule_detail.get("rule_name"));
+                    logger.debug("getMyRule done with rule ID " + my_rule_detail.get("rule_id"));
+
+                    if (my_rule_detail.get("rule_name") != null) {
                         failed_rule_name = my_rule_detail.get("rule_name");
-                        failed_rule_id = Integer.valueOf(my_rule_detail.get("rule_id"));
+                        failed_rule_id = my_rule_detail.get("rule_id") == null ? 0 : Integer.valueOf(my_rule_detail.get("rule_id"));
                         // action = my_rule_detail.get("action");
                         period = my_rule_detail.get("period");
                         failedRuleDate = dateFunction;
                     }
-                    logger.debug("FailedRule Not Null done" + failed_rule_id + " :: " + failed_rule_name);
+                    logger.info("FailedRule Not Null done" + failed_rule_id + " :: " + failed_rule_name);
 
-                    if (failed_rule_name == null  || failed_rule_name.equals("")
+                    if (failed_rule_name == null || failed_rule_name.equals("")
                             || failed_rule_name.equalsIgnoreCase("EXISTS_IN_ALL_ACTIVE_DB")) {
                         finalAction = "ALLOWED";
                         failed_rule_name = null;
@@ -342,7 +344,7 @@ public class CdrParserProcess {
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
                 ? "app.active_unique_imei"
-                : "rep.active_unique_foreign_imei";
+                : "app.active_unique_foreign_imei";
         return " insert into " + dbName + " (actual_imei,msisdn,imsi,create_filename,update_filename,"
                 + "updated_on,created_on,system_type,failed_rule_id,failed_rule_name,tac,period,action "
                 + " , mobile_operator , record_type , failed_rule_date,  modified_on ,record_time, imei , raw_cdr_file_name , imei_arrival_time , source, feature_name , server_origin , update_imei_arrival_time ,update_raw_cdr_file_name) "
@@ -371,7 +373,7 @@ public class CdrParserProcess {
                 + "'" + gsmaTac + "' , "
                 + "'" + server_origin + "' , "
                 + "'" + device_info.get("imei_arrival_time") + "',"
-                 + "'" + device_info.get("raw_cdr_file_name") + "' "
+                + "'" + device_info.get("raw_cdr_file_name") + "' "
                 + ")";
 
     }
@@ -382,7 +384,7 @@ public class CdrParserProcess {
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
                 ? "app.active_unique_imei"
-                : "rep.active_unique_foreign_imei";
+                : "app.active_unique_foreign_imei";
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
                 + "', updated_on=" + dateFunction + ""
@@ -404,7 +406,7 @@ public class CdrParserProcess {
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
                 ? "app.active_unique_imei"
-                : "rep.active_unique_foreign_imei";
+                : "app.active_unique_foreign_imei";
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
                 + "', updated_on=" + dateFunction + ""
@@ -523,7 +525,7 @@ public class CdrParserProcess {
             rs1 = stmt.executeQuery(query);
             while (rs1.next()) {
 
-                if ((rs1.getString("update_imei_arrival_time") == null   || rs1.getString("update_imei_arrival_time").equals(""))
+                if ((rs1.getString("update_imei_arrival_time") == null || rs1.getString("update_imei_arrival_time").equals(""))
                         || (imeiArrival.compareTo(new SimpleDateFormat("yyyy-MM-dd").parse(rs1.getString("update_imei_arrival_time")))
                         > 0)) { // imei
                     // found
@@ -556,7 +558,7 @@ public class CdrParserProcess {
         Statement stmt = null;
         String dbName = msisdnType.equalsIgnoreCase("LocalSim")
                 ? "app.active_unique_imei"
-                : "rep.active_unique_foreign_imei";
+                : "app.active_unique_foreign_imei";
         int status = 0; // imei not found
         try {
 
@@ -569,10 +571,10 @@ public class CdrParserProcess {
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
             while (rs1.next()) {
-              
+
                 if (rs1.getString("msisdn").equalsIgnoreCase(msisdn)) {
 
-                    if ((rs1.getString("update_imei_arrival_time") == null  || rs1.getString("update_imei_arrival_time").equals("")  )
+                    if ((rs1.getString("update_imei_arrival_time") == null || rs1.getString("update_imei_arrival_time").equals(""))
                             || (imeiArrival.compareTo(new SimpleDateFormat("yyyy-MM-dd").parse(rs1.getString("update_imei_arrival_time")))
                             > 0)) {
                         status = 1; // update_raw_cdr_file_name='" + device_info.get("raw_cdr_file_name")
