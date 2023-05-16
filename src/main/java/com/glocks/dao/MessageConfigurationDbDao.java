@@ -16,11 +16,11 @@ public class MessageConfigurationDbDao {
 	static Logger logger = LogManager.getLogger(MessageConfigurationDbDao.class);
 	static String GENERIC_DATE_FORMAT = "dd-MM-yyyy";
 
-	public Optional<MessageConfigurationDb> getMessageDbTag(Connection conn,  String tag) {
+	public Optional<MessageConfigurationDb> getMessageDbTag(Connection conn,  String tag ,String  appdbName) {
 		ResultSet rs = null;
 		Statement stmt = null;
 		String query = "select id, description, tag, value, channel, active, subject "
-				+ "from message_configuration_db where tag='" + tag + "'";
+				+ "from " + appdbName + ".msg_cfg where tag='" + tag + "'";
 
 		logger.info("Query ["+query+"]");
 		 // System.out.println("Query ["+query+"]");

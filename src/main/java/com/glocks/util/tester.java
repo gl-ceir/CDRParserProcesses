@@ -3,16 +3,40 @@ package com.glocks.util;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 class tester {
 
     public static void main(String[] args) {
+
+        try {
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+            System.out.println("Format Date 1 " + new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("yyyyMMdd").parse("20220411")));
+            System.out.println("Format Date 2 " + new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("ddMMyyyy").parse("04012023")));
+            System.out.println("Format Date 3 " + new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("yyMMdd").parse("220422")));
+
+            
+            
+            String dateInString = "20220411";
+            LocalDate date = LocalDate.parse(dateInString);
+            System.out.println("Date 3 " + date);
+
+        } catch (Exception e) {
+        }
+    }
+
+    public static void main123(String[] args) {
 
         String created_on = "2020-11-11.0.0. 0. 0";
         String modified_on = "2020-9-21.11.0. 9. 471000000";
@@ -28,28 +52,24 @@ class tester {
             System.out.println("D1  " + d1);
             System.out.println("diff  " + diff);
 
-            Date dt = new SimpleDateFormat("yyyyMMdd").parse("20220411");
+            Date dt = new SimpleDateFormat("YYYYMMDD").parse("20220411");
+            System.out.println("Date 0 " + dt);
+
             Date dt2 = new SimpleDateFormat("yyyy-MM-dd").parse("2022-01-14 00:00:00");
             System.out.println("Date compare " + dt.compareTo(dt2));
-            
 
-            System.out.println("Date 1 " + new SimpleDateFormat("yyyyMMdd").parse("20220411"));
+            System.out.println("Date 1 " + new SimpleDateFormat("yyyymmdd").parse("20220411"));
 
-//            SimpleDateFormat String dateInString = "20220411";
-//            LocalDate date = LocalDate.parse(dateInString, DateTimeFormatter.BASIC_ISO_DATE);
-//            System.out.println("Date 3 " + date);
+            System.out.println("Date 4 " + LocalDate.parse("04012023", DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)));
 
-            String dateInString1 = "2022-09-14 00:00:00";
-            LocalDate date1 = LocalDate.parse(dateInString1);
+            Date date5 = new Date("20220411");
+            SimpleDateFormat DateFor = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String stringDate = DateFor.format(date5);
+            System.out.println("Date 6" + stringDate);
 
-            System.out.println("Date 4 " + date1);
-
-            LocalDateTime dateTime = LocalDateTime.parse("2022-09-14 00:00:00");
-
-//            Date date = new Date("20220411");
-//            SimpleDateFormat DateFor = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//            String stringDate = DateFor.format(date);
-//            System.out.println("Date 3 " + stringDate);
+            //                imei_arrivalTime = LocalDate.parse(imei_arrivalTime.substring(0, 8), DateTimeFormatter.BASIC_ISO_DATE).toString();
+//             new SimpleDateFormat("yyyyMMdd").parse(imeiArrivalTime)
+//            date.compareTo(new SimpleDateFormat("yyyy-MM-dd").parse("20220411")) ;
         } catch (Exception e) {
             e.printStackTrace();
         }

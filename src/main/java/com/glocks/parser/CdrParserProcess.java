@@ -1,8 +1,10 @@
 package com.glocks.parser;
 
+import com.glocks.constants.PropertiesReader;
 import com.glocks.constants.PropertyReader;
 import com.glocks.dao.MessageConfigurationDbDao;
 import com.glocks.dao.PolicyBreachNotificationDao;
+import com.glocks.db.ConnectionConfiguration;
 import com.glocks.files.FileList;
 import java.io.File;
 import java.sql.*;
@@ -14,34 +16,60 @@ import java.util.HashMap;
 import com.glocks.pojo.MessageConfigurationDb;
 import com.glocks.pojo.PolicyBreachNotification;
 import com.glocks.util.Util;
+import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.text.DateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@SpringBootApplication(scanBasePackages = {"com.glocks"})
+
+@EnableEncryptableProperties
 public class CdrParserProcess {
 
     static Logger logger = LogManager.getLogger(CdrParserProcess.class);
     static StackTraceElement l = new Exception().getStackTrace()[0];
-    public static PropertyReader propertyReader;
+    static String appdbName = null;
+    public static PropertiesReader propertiesReader = null;
+    static ConnectionConfiguration connectionConfiguration = null;
 
     public static void main(String args[]) { // OPERATOR FilePath
-        Connection conn = null;
-        logger.info(" CdrParserProcess.class");
-        conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
-        // String operator = args[0];
+
+        ApplicationContext context = SpringApplication.run(CdrParserProcess.class, args);
+        propertiesReader = (PropertiesReader) context.getBean("propertiesReader");
+        connectionConfiguration = (ConnectionConfiguration) context.getBean("connectionConfiguration");
+        logger.info("connectionConfiguration :" + connectionConfiguration.getConnection().toString());
+
+        //  conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+        Connection conn = connectionConfiguration.getConnection();
+        appdbName = propertiesReader.appdbName;
+        logger.info(" appdbName:" + appdbName);
+
         String filePath = null;
         if (args[0] == null) {
             logger.error("Enter the Correct File Path");
@@ -52,6 +80,7 @@ public class CdrParserProcess {
             filePath += "/";
         }
         try {
+
             CdrParserProces(conn, filePath);
         } catch (Exception e) {
             try {
@@ -61,7 +90,6 @@ public class CdrParserProcess {
             }
         } finally {
             try {
-                conn.commit();
                 conn.close();
             } catch (SQLException ex) {
                 logger.error(ex);
@@ -73,6 +101,7 @@ public class CdrParserProcess {
 
     public static void CdrParserProces(Connection conn, String filePath) {
         logger.debug(" FilePath :" + filePath);
+
         String source = null;
         String operator = null;
         if (filePath != null) {
@@ -110,7 +139,6 @@ public class CdrParserProcess {
             String operator_tag, String period, String filePath, String source, String fileName) {
         int output = 0;
 
-        propertyReader = new PropertyReader();
         String my_query = null;
         HashMap<String, String> my_rule_detail;
         String failed_rule_name = "";
@@ -133,7 +161,7 @@ public class CdrParserProcess {
         int fileParseLimit = 1;
         Statement stmtNew = null;
         try {
-            String server_origin = propertyReader.getPropValue("serverName").trim();
+            String server_origin = propertiesReader.serverName;
             logger.info("  serverName   " + server_origin);
             //
             // stmt = conn.createStatement();
@@ -161,6 +189,7 @@ public class CdrParserProcess {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date date = new Date();
             String sdfTime = sdf.format(date);
+            String dateString = null;
             boolean isOracle = conn.toString().contains("oracle");
             String dateFunction = Util.defaultDateNow(isOracle);
             logger.debug("fileParseLimit " + fileParseLimit);
@@ -169,6 +198,7 @@ public class CdrParserProcess {
             // counter++;
             // }
 
+            String dateType = "yyyyMMdd";
             while ((line = br.readLine()) != null) {
                 data = line.split(",", -1);
                 logger.debug(" Line Started " + Arrays.toString(data));
@@ -183,14 +213,14 @@ public class CdrParserProcess {
                 device_info.put("source", data[5].trim());
                 device_info.put("raw_cdr_file_name", data[6].trim());
                 String imei_arrivalTime = null;
-                if (data[7].trim().startsWith("20")) {
-                    imei_arrivalTime = data[7].trim();
-                    logger.debug("imei_arrival_time Starts with YYYY " + imei_arrivalTime);
-                } else {
-                    imei_arrivalTime = "20" + data[7].trim();
-                    logger.debug("imei_arrival_time Starts with YY " + imei_arrivalTime);
+                if (propertiesReader.ddMMyyyySource.contains(data[5].trim())) {
+                    dateType = "ddMMyyyy";
                 }
-                imei_arrivalTime = imei_arrivalTime.substring(0, 8);
+                if (propertiesReader.yyMMddSource.contains(data[5].trim())) {
+                    dateType = "yyMMdd";
+                }
+                imei_arrivalTime = new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat(dateType).parse(data[7]));
+                logger.debug("imei_arrival_time is  " + imei_arrivalTime);
                 device_info.put("imei_arrival_time", imei_arrivalTime);
                 device_info.put("operator", operator.trim());
                 device_info.put("record_time", sdfTime);
@@ -297,11 +327,6 @@ public class CdrParserProcess {
                     stmtNew = conn.createStatement();
                     stmtNew.executeUpdate(my_query);
                     stmtNew.close(); //
-                    try {
-                        conn.commit();
-                    } catch (Exception e) {
-                        logger.info("Exception in insert :: : " + e);
-                    }
                 } else {
                     logger.info(" writing query in file== " + my_query);
                     bw1.write(my_query + ";");
@@ -314,15 +339,7 @@ public class CdrParserProcess {
             cdrFileDetailsUpdate(conn, operator, device_info.get("file_name"), usageInsert, usageUpdate,
                     duplicateInsert, duplicateUpdate, nullInsert, nullUpdate, p2Starttime, p2Endtime, "all", counter,
                     device_info.get("raw_cdr_file_name"), foreignMsisdn, server_origin);
-//            try {
-//                Map<String, Long> map = sourceTacList.stream()
-//                        .collect(Collectors.groupingBy(c -> c, Collectors.counting()));
-//                map.forEach((k, v) -> new HexFileReader().insertSourceTac(conn, k, device_info.get("file_name"), v,
-//                        "source_tac_info"));
-//            } catch (Exception e) {
-//                logger.error(
-//                        "sourceTac Error " + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-//            }
+
             new com.glocks.files.FileList().moveCDRFile(conn, fileName, operator, filePath, source);
         } catch (Exception e) {
             logger.error("Errors " + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
@@ -331,7 +348,6 @@ public class CdrParserProcess {
             try {
                 br.close();
                 bw1.close();
-                conn.commit();
             } catch (Exception e) {
                 logger.error(".. " + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
             }
@@ -343,8 +359,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_unique_imei"
-                : "app.active_unique_foreign_imei";
+                ? "  " + appdbName + ".active_unique_imei"
+                : " " + appdbName + ".active_unique_foreign_imei";
         return " insert into " + dbName + " (actual_imei,msisdn,imsi,create_filename,update_filename,"
                 + "updated_on,created_on,system_type,failed_rule_id,failed_rule_name,tac,period,action "
                 + " , mobile_operator , record_type , failed_rule_date,  modified_on ,record_time, imei , raw_cdr_file_name , imei_arrival_time , source, feature_name , server_origin , update_imei_arrival_time ,update_raw_cdr_file_name) "
@@ -383,8 +399,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_unique_imei"
-                : "app.active_unique_foreign_imei";
+                ? "" + appdbName + ".active_unique_imei"
+                : "" + appdbName + ".active_unique_foreign_imei";
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
                 + "', updated_on=" + dateFunction + ""
@@ -405,8 +421,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_unique_imei"
-                : "app.active_unique_foreign_imei";
+                ? "" + appdbName + ".active_unique_imei"
+                : "" + appdbName + ".active_unique_foreign_imei";
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
                 + "', updated_on=" + dateFunction + ""
@@ -425,8 +441,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_imei_with_different_msisdn"
-                : "app.active_foreign_imei_with_different_msisdn";
+                ? "" + appdbName + ".active_imei_with_different_msisdn"
+                : "" + appdbName + ".active_foreign_imei_with_different_msisdn";
 
         return "insert into  " + dbName + "  (actual_imei,msisdn,imsi,create_filename,update_filename,"
                 + "updated_on,created_on,system_type,failed_rule_id,failed_rule_name,tac,period,action  "
@@ -467,8 +483,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_imei_with_different_msisdn"
-                : "app.active_foreign_imei_with_different_msisdn";
+                ? "" + appdbName + ".active_imei_with_different_msisdn"
+                : "" + appdbName + ".active_foreign_imei_with_different_msisdn";
 
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
@@ -490,8 +506,8 @@ public class CdrParserProcess {
             String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate,
             String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
-                ? "app.active_imei_with_different_msisdn"
-                : "app.active_foreign_imei_with_different_msisdn";
+                ? "" + appdbName + ".active_imei_with_different_msisdn"
+                : "" + appdbName + ".active_foreign_imei_with_different_msisdn";
 
         return "update " + dbName + " set "
                 + "update_filename = '" + device_info.get("file_name")
@@ -511,8 +527,8 @@ public class CdrParserProcess {
     private static int checkDeviceDuplicateDB(Connection conn, String imei, String msisdn, String imeiArrivalTime,
             String msisdnType) {
         String dbName = msisdnType.equalsIgnoreCase("LocalSim")
-                ? "app.active_imei_with_different_msisdn"
-                : "app.active_foreign_imei_with_different_msisdn";
+                ? "" + appdbName + ".active_imei_with_different_msisdn"
+                : "" + appdbName + ".active_foreign_imei_with_different_msisdn";
         String query = null;
         ResultSet rs1 = null;
         Statement stmt = null;
@@ -520,7 +536,7 @@ public class CdrParserProcess {
         try {
             Date imeiArrival = new SimpleDateFormat("yyyyMMdd").parse(imeiArrivalTime);
             query = "select * from " + dbName + " where imei ='" + imei + "' and msisdn = '" + msisdn + "'";
-            logger.debug("device_dupliate db" + query);
+            logger.debug("Checking duplicate  db" + query);
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
             while (rs1.next()) {
@@ -543,7 +559,6 @@ public class CdrParserProcess {
             try {
                 rs1.close();
                 stmt.close();
-
             } catch (SQLException e) {
                 logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
             }
@@ -557,8 +572,8 @@ public class CdrParserProcess {
         ResultSet rs1 = null;
         Statement stmt = null;
         String dbName = msisdnType.equalsIgnoreCase("LocalSim")
-                ? "app.active_unique_imei"
-                : "app.active_unique_foreign_imei";
+                ? "" + appdbName + ".active_unique_imei"
+                : "" + appdbName + ".active_unique_foreign_imei";
         int status = 0; // imei not found
         try {
 
@@ -603,7 +618,7 @@ public class CdrParserProcess {
 
     public static String getSystemConfigDetailsByTag(Connection conn, String tag) {
         String value = null;
-        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("select value from app.sys_param where tag='" + tag + "'");) {
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("select value from " + appdbName + ".sys_param where tag='" + tag + "'");) {
             while (rs.next()) {
                 value = rs.getString("value");
             }
@@ -620,7 +635,7 @@ public class CdrParserProcess {
         Statement stmt = null;
         int status = 0;
         try {
-            query = "select * from app.null_imei where msisdn='" + msisdn + "'";
+            query = "select * from " + appdbName + ".null_imei where msisdn='" + msisdn + "'";
             logger.debug("device usage db" + query);
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
@@ -647,9 +662,9 @@ public class CdrParserProcess {
         Statement stmt = null;
         try {
             query = "select a.id as rule_id,a.name as rule_name,b.output as output,b.grace_action, b.post_grace_action, b.failed_rule_action_grace, b.failed_rule_action_post_grace "
-                    + " from app.rule a, app.feature_rule b where  a.name=b.name  and a.state='Enabled' and b.feature='CDR' and   b."
+                    + " from " + appdbName + ".rule a, " + appdbName + ".feature_rule b where  a.name=b.name  and a.state='Enabled' and b.feature='CDR' and   b."
                     + period + "_action !='NA'         order by b.rule_order asc";
-            logger.debug("Query is " + query);
+            logger.info("Query is " + query);
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
             while (rs1.next()) {
@@ -710,7 +725,7 @@ public class CdrParserProcess {
         String query = null;
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Statement stmt = null;
-        query = "insert into  app.cdr_file_processed_detail (total_inserts_in_usage_db,total_updates_in_usage_db ,total_insert_in_dup_db , total_updates_in_dup_db , total_insert_in_null_db , total_update_in_null_db , P2StartTime , P2EndTime ,operator , file_name, total_records_count , raw_cdr_file_name  ,source  ,foreignMsisdn  , STATUS , server_origin) "
+        query = "insert into  " + appdbName + ".cdr_file_processed_detail (total_inserts_in_usage_db,total_updates_in_usage_db ,total_insert_in_dup_db , total_updates_in_dup_db , total_insert_in_null_db , total_update_in_null_db , P2StartTime , P2EndTime ,operator , file_name, total_records_count , raw_cdr_file_name  ,source  ,foreignMsisdn  , STATUS , server_origin) "
                 + "values(   '" + usageInsert + "' , '" + usageUpdate + "'  , '" + duplicateInsert + "' , '"
                 + duplicateUpdate + "' "
                 + " ,'" + nullInsert + "' ,'" + nullUpdate + "','" + df.format(P2StartTime) + "' , '"
@@ -757,7 +772,7 @@ public class CdrParserProcess {
 
         try {
             Optional<MessageConfigurationDb> messageDbOptional = messageConfigurationDbDao.getMessageDbTag(conn,
-                    "USER_REG_MESSAGE");
+                    "USER_REG_MESSAGE", appdbName);
 
             if (messageDbOptional.isPresent()) {
                 messageDb = messageDbOptional.get();
@@ -783,7 +798,7 @@ public class CdrParserProcess {
         Date currentDate = new Date();
         Date graceDate = null;
         try {
-            query = "select value from app.sys_param where tag='GRACE_PERIOD_END_DATE'";
+            query = "select value from " + appdbName + ".sys_param where tag='GRACE_PERIOD_END_DATE'";
             logger.info("Check Grace End Date [" + query + "]");
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
@@ -816,7 +831,7 @@ public class CdrParserProcess {
         ResultSet rs1 = null;
         Statement stmt = null;
         try {
-            query = "select * from app.sys_cfg_parameter where tag='OPERATORS' and interp='" + operator + "'";
+            query = "select * from " + appdbName + ".sys_cfg_parameter where tag='OPERATORS' and interp='" + operator + "'";
             logger.debug("get operator tag [" + query + "]");
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
@@ -841,10 +856,9 @@ public class CdrParserProcess {
     private static BufferedWriter getSqlFileWriter(Connection conn, String operator, String source, String file) {
 
         // operator = operator.toLowerCase();
-        HexFileReader hfr = new HexFileReader();
         BufferedWriter bw1 = null;
         try {
-            String foldrName = hfr.getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
+            String foldrName = getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
             File file1 = new File(foldrName);
             if (!file1.exists()) {
                 file1.mkdir();
@@ -867,8 +881,7 @@ public class CdrParserProcess {
 
     public static void renameSqlFile(Connection conn, String operator, String source, String file) {
 
-        HexFileReader hfr = new HexFileReader();
-        String foldrName = hfr.getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
+        String foldrName = getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
         foldrName += source + "/";
         String fileNameInput1 = foldrName + file + ".sql";
         logger.info("SQL_    " + fileNameInput1);
@@ -885,10 +898,9 @@ public class CdrParserProcess {
     }
 
     public static BufferedWriter getRuleFileWriter(Connection conn) {
-        HexFileReader hfr = new HexFileReader();
         BufferedWriter bw1 = null;
         try {
-            String foldrName = hfr.getFilePath(conn, "Sql_Query_Folder") + "/";
+            String foldrName = getFilePath(conn, "Sql_Query_Folder") + "/";
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             File file1 = new File(foldrName);
             file1.mkdir();
@@ -904,13 +916,12 @@ public class CdrParserProcess {
     }
 
     private static String getFileDetaiRecords(Connection conn, String operator) {
-        HexFileReader hfr = new HexFileReader();
         String basePath = "";
         String intermPath = "";
 
         BufferedReader br = null;
         try {
-            basePath = hfr.getFilePath(conn, "smart_file_path");
+            basePath = getFilePath(conn, "smart_file_path");
             if (!basePath.endsWith("/")) {
                 basePath += "/";
             }
@@ -930,7 +941,7 @@ public class CdrParserProcess {
         ResultSet rs = null;
         File fldr = null;
         try {
-            query = "select value from app.sys_param where tag= '" + opertor + "_folder_list'  ";
+            query = "select value from " + appdbName + ".sys_param where tag= '" + opertor + "_folder_list'  ";
             logger.debug("query: " + query);
             stmt = conn.createStatement();
             rs = stmt.executeQuery(query);
@@ -962,10 +973,9 @@ public class CdrParserProcess {
     private static int getExsistingSqlFileDetails(Connection conn, String operator, String source, String file) {
         int fileCount = 1;
 
-        HexFileReader hfr = new HexFileReader();
         File file1 = null;
         try {
-            String foldrName = hfr.getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
+            String foldrName = getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
             foldrName += source + "/";
             String fileNameInput1 = foldrName + file + ".sql";
             try {
@@ -1008,7 +1018,7 @@ public class CdrParserProcess {
         int counts = 0;
 
         try {
-            query = "select count(*) from app.gsma_valid_tac  where  DEVICE_ID='" + imeiTac + "'";
+            query = "select count(*) from " + appdbName + ".gsma_valid_tac  where  DEVICE_ID='" + imeiTac + "'";
             logger.debug("get [" + query + "]");
             stmt = conn.createStatement();
             rs1 = stmt.executeQuery(query);
@@ -1018,7 +1028,7 @@ public class CdrParserProcess {
             if (counts != 0) {
                 rsltTac = "V";
             } else {
-                query = "select count(*) from app.gsma_invalid_tac  where  tac ='" + imeiTac + "'";
+                query = "select count(*) from " + appdbName + ".gsma_invalid_tac  where  tac ='" + imeiTac + "'";
                 logger.debug("get [" + query + "]");
                 stmt2 = conn.createStatement();
                 rs2 = stmt.executeQuery(query);
@@ -1054,4 +1064,33 @@ public class CdrParserProcess {
         return rsltTac;
     }
 
+    public static String getFilePath(Connection conn, String tag_type) {
+        String file_path = "";
+        String query = null;
+        ResultSet rs = null;
+        Statement stmt = null;
+        try {
+            query = "select value from " + appdbName + ".sys_param where tag='" + tag_type + "'";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            logger.info("to get configuration" + query);
+            while (rs.next()) {
+                file_path = rs.getString("value");
+                logger.info("in function file path " + file_path);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            logger.error("e " + ex);
+        } finally {
+            try {
+                rs.close();
+                stmt.close();
+            } catch (SQLException ex) {
+                logger.error("e " + ex);
+            }
+
+        }
+        return file_path;
+
+    }
 }

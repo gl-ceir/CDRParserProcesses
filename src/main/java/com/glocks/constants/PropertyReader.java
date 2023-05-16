@@ -9,14 +9,39 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
+import org.springframework.stereotype.Component;
+
+
+@Component
+@PropertySources({
+    @PropertySource(value = {"file:application.properties"}, ignoreResourceNotFound = true),
+    @PropertySource(value = {"file:configuration.properties"}, ignoreResourceNotFound = true)
+})
 
 public class PropertyReader {
+
+    @Value("${appdbName}")
+    public String appdbName;
+
+    @Value("${repdbName}")
+    public String repdbName;
+
+    @Value("${auddbName}")
+    public String auddbName;
+
+    @Value("${oamdbName}")
+    public String oamdbName;
+    
+    
 
     private InputStream inputStream;
     Properties prop;
     private static final Logger logger = LogManager.getLogger(PropertyReader.class);
 
-     public String getConfigPropValue(String key) throws IOException {
+    public String getConfigPropValue(String key) throws IOException {
         prop = loadProperties(System.getenv("APP_HOME") + "/configuration/configuration.properties");
         if (Objects.nonNull(prop)) {
             return prop.getProperty(key);
@@ -24,8 +49,8 @@ public class PropertyReader {
             return null;
         }
     }
-     
-       public String getPropValue(String key) throws IOException {
+
+    public String getPropValue(String key) throws IOException {
         prop = loadProperties(System.getProperty("user.dir") + "/conf/config.properties");
         if (Objects.nonNull(prop)) {
             return prop.getProperty(key)
@@ -36,8 +61,7 @@ public class PropertyReader {
         }
     }
 
-       
-         Properties loadProperties(String propFileName) {
+    Properties loadProperties(String propFileName) {
         try {
             prop = new Properties();
             inputStream = new FileInputStream(propFileName);
@@ -51,7 +75,7 @@ public class PropertyReader {
         }
         return prop;
     }
-       
+
 //    Properties loadProperties() {
 //        try {
 //            prop = new Properties();
@@ -69,12 +93,6 @@ public class PropertyReader {
 //        }
 //        return prop;
 //    }
-  
-
-  
-
-  
-
 }
 
 //jdbc_driver=oracle.jdbc.driver.OracleDriver

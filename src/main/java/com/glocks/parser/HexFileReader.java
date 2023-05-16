@@ -1277,7 +1277,7 @@ public class HexFileReader {
           ResultSet rs = null;
           Statement stmt = null;
           try {
-               query = "select value from app.sys_param where tag='" + tag_type + "'";
+               query = "select value from sys_param where tag='" + tag_type + "'";
                stmt = conn.createStatement();
                rs = stmt.executeQuery(query);
                logger.info("to get configuration" + query);

@@ -1,6 +1,6 @@
 package com.glocks.parser;
 
-import com.gl.Rule_engine.RuleEngineApplication;
+import com.gl.Rule_engine_Old.RuleEngineApplication;
 import com.glocks.constants.PropertyReader;
 import com.glocks.parser.service.ConsignmentInsertUpdate;
 import com.glocks.util.Util;
@@ -283,7 +283,7 @@ public class CEIRFeatureFileFunctions {
             stmt.close();
 
             logger.info(" Tag before Replace  " + tag);
-            String aa = propertyReader.getPropValue("localIp").trim();
+            String aa = propertyReader.getConfigPropValue("localIp").trim();
             logger.info("  aa    " + aa);
 //               tag = tag.replace("$LOCAL_IP1", aa);
             tag = tag.replace("$LOCAL_IP", aa);

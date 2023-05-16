@@ -6,9 +6,7 @@
 package com.glocks.parser;
 
 import com.glocks.constants.PropertyReader;
-import static com.glocks.parser.CEIRFeatureFileFunctions.l;
-import static com.glocks.parser.CEIRFeatureFileFunctions.propertyReader;
-import static com.glocks.parser.CdrParserProcess.propertyReader;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -109,7 +107,7 @@ public class ErrorFileGenrator {
         String aa = "";
        propertyReader = new PropertyReader();
         try {
-            aa = propertyReader.getPropValue("localIp").trim();
+            aa = propertyReader.getConfigPropValue("localIp").trim();
             logger.info("  .. " + aa);
         } catch (Exception ex) {
             logger.info("       " + ex);

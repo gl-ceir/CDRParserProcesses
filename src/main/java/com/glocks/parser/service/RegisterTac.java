@@ -21,7 +21,7 @@ import com.glocks.pojo.Notification;
 import com.glocks.pojo.TypeApprovedDb;
 import com.glocks.pojo.UserWithProfile;
 import com.glocks.resttemplate.TacApiConsumer;
-import com.gl.Rule_engine.RuleEngineApplication;
+import com.gl.Rule_engine_Old.RuleEngineApplication;
 import java.io.BufferedWriter;
 
 public class RegisterTac {
