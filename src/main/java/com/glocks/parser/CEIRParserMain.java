@@ -644,30 +644,30 @@ public class CEIRParserMain {
 
      }
 
-     private static void sendMessageToMsisdn(Connection conn, String msisdn, String imei) {
-
-          MessageConfigurationDbDao messageConfigurationDbDao = new MessageConfigurationDbDao();
-          PolicyBreachNotificationDao policyBreachNotificationDao = new PolicyBreachNotificationDao();
-          MessageConfigurationDb messageDb = null;
-
-          try {
-               Optional<MessageConfigurationDb> messageDbOptional = messageConfigurationDbDao.getMessageDbTag(conn, "USER_REG_MESSAGE");
-
-               if (messageDbOptional.isPresent()) {
-                    messageDb = messageDbOptional.get();
-                    String message = messageDb.getValue().replace("<imei>", imei);
-
-                    PolicyBreachNotification policyBreachNotification = new PolicyBreachNotification("SMS", message, "", msisdn, imei);
-
-                    policyBreachNotificationDao.insertNotification(conn, policyBreachNotification);
-
-               }
-
-          } catch (Exception e) {
-               logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-          }
-
-     }
+//     private static void sendMessageToMsisdn(Connection conn, String msisdn, String imei) {
+//
+//          MessageConfigurationDbDao messageConfigurationDbDao = new MessageConfigurationDbDao();
+//          PolicyBreachNotificationDao policyBreachNotificationDao = new PolicyBreachNotificationDao();
+//          MessageConfigurationDb messageDb = null;
+//
+//          try {
+//               Optional<MessageConfigurationDb> messageDbOptional = messageConfigurationDbDao.getMessageDbTag(conn, "USER_REG_MESSAGE");
+//
+//               if (messageDbOptional.isPresent()) {
+//                    messageDb = messageDbOptional.get();
+//                    String message = messageDb.getValue().replace("<imei>", imei);
+//
+//                    PolicyBreachNotification policyBreachNotification = new PolicyBreachNotification("SMS", message, "", msisdn, imei);
+//
+//                    policyBreachNotificationDao.insertNotification(conn, policyBreachNotification);
+//
+//               }
+//
+//          } catch (Exception e) {
+//               logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+//          }
+//
+//     }
 
 }
 

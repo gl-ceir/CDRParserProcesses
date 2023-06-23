@@ -13,8 +13,9 @@ import java.util.Scanner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.gl.Rule_engine.RuleEngineApplication;
+import com.gl.Rule_engine_Old.RuleEngineApplication;
 import com.glocks.log.LogWriter;
+import static com.glocks.parser.CdrParserProcess.appdbName;
 import com.glocks.util.Util;
 
 import java.io.BufferedWriter; 
@@ -22,7 +23,7 @@ public class RuleFilter {
 
     private static Logger logger = LogManager.getLogger(RuleFilter.class);
 
-    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist) {
+    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist  ) {
         logger.debug("getMyRule started ");
         BufferedWriter bw = null;
         HashMap<String, String> rule_detail = new HashMap<String, String>();    // CDR
@@ -62,28 +63,28 @@ public class RuleFilter {
             if (device_info.get("output").equalsIgnoreCase(output)) {
                 rule_detail.put("rule_name", null);
             } else {
-                String[] my_action_arr = {device_info.get("rule_name"),  //0
-                    "2",   //1
-                    "CDR", //2
-                    device_info.get("IMEI"),  //3
+                String[] my_action_arr = {device_info.get("rule_name"),  //0  ruleName
+                    "2",   //1   executeRuleExecuteAction
+                    "CDR", //2   FeatureName
+                    device_info.get("IMEI"),  //3   imei
                     "0",  //4
-                    device_info.get("file_name"), //5
+                    device_info.get("file_name"), //5        fileName
                     "0",   //6
-                    device_info.get("record_time"), //7
-                    device_info.get("operator"),   //8
+                    device_info.get("record_time"), //7      recordTime
+                    device_info.get("operator"),   //8       operator
                     "error",  //9
-                    device_info.get("operator_tag"),  //10
-                    device_info.get("period"),   //11
-                    device_info.get("MSISDN"),  //12
-                    device_info.get("action"),    //13
-                    device_info.get("IMSI")  ,  //14
-                    device_info.get("record_type") ,   //15
-                    device_info.get("system_type"),    //16
-                    device_info.get("source") ,   //17
-                    device_info.get("raw_cdr_file_name") ,   //18
-                    device_info.get("imei_arrival_time") ,   //19
-                    device_info.get("operator")  ,  //20
-                    device_info.get("file_name")    //21
+                    device_info.get("operator_tag"),  //10   operatorTag GSMA/CDMA
+                    device_info.get("period"),   //11        peroid
+                    device_info.get("MSISDN"),  //12         msisdn
+                    device_info.get("action"),    //13       action
+                    device_info.get("IMSI")  ,  //14         imsi
+                    device_info.get("record_type") ,   //15  recordType
+                    device_info.get("system_type"),    //16  systemType
+                    device_info.get("source") ,   //17       source 
+                    device_info.get("raw_cdr_file_name") ,   //18 rawCdrFileName
+                    device_info.get("imei_arrival_time") ,   //19 imeiArrivalTime
+                    device_info.get("operator")  ,  //20           operator
+                    device_info.get("file_name")    //21         fileName
                         
                 };
                 try {
@@ -117,7 +118,7 @@ public class RuleFilter {
         String dateFunction = Util.defaultDate(isOracle);
         Statement stmt = null;
         try {
-            String query = "insert into app.invalid_imei (CREATED_ON,MODIFIED_ON ,IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
+            String query = "insert into " + appdbName + ".invalid_imei (CREATED_ON,MODIFIED_ON ,IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
                     + " values ( now() , now() ,'" + device_info.get("IMEI") + "','" + device_info.get("rule_name") + "','" + device_info.get("operator") + "', ' ' ,'" + device_info.get("operator_tag") + "' ,'" + device_info.get("file_name") + "','" + device_info.get("record_time") + "'  ) ";
             logger.debug("Qury " + query);
             stmt = conn.createStatement();
