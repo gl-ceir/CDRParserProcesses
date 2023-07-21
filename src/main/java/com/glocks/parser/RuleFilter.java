@@ -18,12 +18,13 @@ import com.glocks.log.LogWriter;
 import static com.glocks.parser.CdrParserProcess.appdbName;
 import com.glocks.util.Util;
 
-import java.io.BufferedWriter; 
+import java.io.BufferedWriter;
+
 public class RuleFilter {
 
     private static Logger logger = LogManager.getLogger(RuleFilter.class);
 
-    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist  ) {
+    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist) {
         logger.debug("getMyRule started ");
         BufferedWriter bw = null;
         HashMap<String, String> rule_detail = new HashMap<String, String>();    // CDR
@@ -39,9 +40,9 @@ public class RuleFilter {
             device_info.put("failed_rule_aciton", rule.failed_rule_aciton);
             String[] my_arr = {device_info.get("rule_name"), //0
                 "1", //1
-                "CDR", //2
-                (device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH")) ? device_info.get("IMEI") : device_info.get("IMEI").substring(0, 14), //3
-
+                "CDR", //  2
+                // (device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH")) ? device_info.get("IMEI") : device_info.get("IMEI").substring(0, 1 4), //3
+                device_info.get("IMEI").length() > 14 ? device_info.get("IMEI").substring(0, 14) : device_info.get("IMEI"),
                 "0", //4
                 device_info.get("file_name"), //5
                 "0", //6
@@ -63,39 +64,45 @@ public class RuleFilter {
             if (device_info.get("output").equalsIgnoreCase(output)) {
                 rule_detail.put("rule_name", null);
             } else {
-                String[] my_action_arr = {device_info.get("rule_name"),  //0  ruleName
-                    "2",   //1   executeRuleExecuteAction
+                String[] my_action_arr = {
+                    device_info.get("rule_name"), //0  ruleName
+                    "2", //1   executeRuleExecuteAction
                     "CDR", //2   FeatureName
-                    device_info.get("IMEI"),  //3   imei
-                    "0",  //4
+                    device_info.get("IMEI"), //3   imei
+                    "0", //4
                     device_info.get("file_name"), //5        fileName
-                    "0",   //6
+                    "0", //6
                     device_info.get("record_time"), //7      recordTime
-                    device_info.get("operator"),   //8       operator
-                    "error",  //9
-                    device_info.get("operator_tag"),  //10   operatorTag GSMA/CDMA
-                    device_info.get("period"),   //11        peroid
-                    device_info.get("MSISDN"),  //12         msisdn
-                    device_info.get("action"),    //13       action
-                    device_info.get("IMSI")  ,  //14         imsi
-                    device_info.get("record_type") ,   //15  recordType
-                    device_info.get("system_type"),    //16  systemType
-                    device_info.get("source") ,   //17       source 
-                    device_info.get("raw_cdr_file_name") ,   //18 rawCdrFileName
-                    device_info.get("imei_arrival_time") ,   //19 imeiArrivalTime
-                    device_info.get("operator")  ,  //20           operator
-                    device_info.get("file_name")    //21         fileName
-                        
+                    device_info.get("operator"), //8       operator
+                    "error", //9
+                    device_info.get("operator_tag"), //10   operatorTag GSMA/CDMA
+                    device_info.get("period"), //11        peroid
+                    device_info.get("MSISDN"), //12         msisdn
+                    device_info.get("action"), //13       action
+                    device_info.get("IMSI"), //1 4         imsi
+                    device_info.get("record_type"), //15  recordType
+                    device_info.get("system_type"), //16  systemType
+                    device_info.get("source"), //17       source
+                    device_info.get("raw_cdr_file_name"), //18 rawCdrFileName
+                    device_info.get("imei_arrival_time"), //19 imeiArrivalTime
+                    device_info.get("operator"), //20           operator
+                    device_info.get("file_name") //21         fileName
                 };
                 try {
                     action_output = RuleEngineApplication.startRuleEngine(my_action_arr, conn, bw);
                 } catch (Exception e) {
                     logger.error("Error2 " + e);
                 }
+
+                if (device_info.get("rule_name").equalsIgnoreCase("TEST_IMEI")) {
+                    rule_detail.put("test_imei", "true");
+                }
+
                 if (device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")) {
                     if (!device_info.get("rule_name").equalsIgnoreCase("EXISTS_IN_ALL_ACTIVE_DB")) {
                         insertInDeviceInvalidDb(conn, device_info);
                     }
+
                     rule_detail.put("rule_name", null);
                 } else {
                     rule_detail.put("period", device_info.get("period"));
@@ -148,15 +155,15 @@ public class RuleFilter {
             device_info.put("period", rule.period);
             device_info.put("action", rule.action);
             device_info.put("failed_rule_aciton", rule.failed_rule_aciton);
-   String fileArray = device_info.get("DeviceType") + "," + device_info.get("DeviceIdType") + "," + device_info.get("MultipleSIMStatus") + "," + device_info.get("SNofDevice") + "," + device_info.get("IMEIESNMEID") + "," + device_info.get("Devicelaunchdate") + "," + device_info.get("DeviceStatus") + "";
+            String fileArray = device_info.get("DeviceType") + "," + device_info.get("DeviceIdType") + "," + device_info.get("MultipleSIMStatus") + "," + device_info.get("SNofDevice") + "," + device_info.get("IMEIESNMEID") + "," + device_info.get("Devicelaunchdate") + "," + device_info.get("DeviceStatus") + "";
             String[] my_arr = {
                 device_info.get("rule_name"), //0
                 "1", //1
-                device_info.get("feature"), //2   (consign,stock,CDr etc
+                device_info.get("feature"), //2   (consign,stock,Non CDr etc
                 (((device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH"))) ? device_info.get("IMEIESNMEID") : device_info.get("IMEIESNMEID").substring(0, 14)), //3
-                  device_info.get("SNofDevice")  , //4//
+                device_info.get("SNofDevice"), //4//
                 device_info.get("file_name"), //5     foreignSim Only
-                 device_info.get("DeviceType"), //6//
+                device_info.get("DeviceType"), //6//
                 device_info.get("record_time"), //7//
                 device_info.get("operator"), //8    foreignSim Only
                 device_info.get("DeviceIdType"), //9     imei/esn/meid imeiLength  / luhn
@@ -164,9 +171,8 @@ public class RuleFilter {
                 device_info.get("period"), //11
                 "", //12
                 device_info.get("action"), //13
-                device_info.get("txn_id"), //14
+                device_info.get("txn_id"), //1 4
                 fileArray //15
-                    
             };
             logger.debug(" Rule Execution Start" + Arrays.toString(my_arr));
             output = RuleEngineApplication.startRuleEngine(my_arr, conn, bw);
@@ -193,7 +199,7 @@ public class RuleFilter {
                     "2",
                     device_info.get("feature"),
                     device_info.get("IMEIESNMEID"),
-                      device_info.get("SNofDevice") ,
+                    device_info.get("SNofDevice"),
                     device_info.get("file_name"),
                     "0",
                     "",

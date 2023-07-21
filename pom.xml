@@ -14,7 +14,7 @@
     <artifactId>CEIRCdrParserM</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
-    <name>CEIRCdrParser</name>
+    <name>EirsCdrParser</name>
 	 
 
     <properties>
@@ -102,7 +102,7 @@
    
 
     <build>
-        <finalName>CEIRCdrParser</finalName>
+        <finalName>EirsCdrParser</finalName>
        
         <plugins>
             <plugin>

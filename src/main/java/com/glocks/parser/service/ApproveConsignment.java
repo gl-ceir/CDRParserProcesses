@@ -23,8 +23,8 @@ public class ApproveConsignment {
 	
 		try{
 			List<DeviceImporterDb> deviceImporterDbs = deviceImporterDbDao.getDeviceImporterDbByTxnId(conn, txnId);
-			logger.info(
-                        203);
+                    logger.info(
+                            203);
 
 			deviceCustomDbDao.insertDeviceCustomDbWithImporterObject(conn, deviceImporterDbs);
 //			deviceCustomDbDao.insertDeviceCustomDbAudWithImporterObject(conn, deviceImporterDbs, 0);
