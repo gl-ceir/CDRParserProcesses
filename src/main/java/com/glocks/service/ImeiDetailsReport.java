@@ -33,7 +33,7 @@ public class ImeiDetailsReport {
 
           Connection conn = null;
           logger.info(" ImeiDetailsReport.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+         //    conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
           ImeiDetailsReportServcImpl(conn);
           System.exit(0);
      }
