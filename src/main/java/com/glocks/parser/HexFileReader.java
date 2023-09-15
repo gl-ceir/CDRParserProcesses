@@ -1,7 +1,5 @@
 package com.glocks.parser;
 
-import static com.glocks.parser.CdrParserProcess.l;
-import static com.glocks.parser.CdrParserProcess.logger;
 import com.glocks.util.Util;
 import com.glocks.zte.ZTEFields;
 

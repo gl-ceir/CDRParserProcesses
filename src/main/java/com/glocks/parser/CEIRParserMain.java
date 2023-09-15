@@ -1,27 +1,11 @@
 package com.glocks.parser;
 
-import com.glocks.dao.MessageConfigurationDbDao;
-import com.glocks.dao.PolicyBreachNotificationDao;
-import java.io.File;
-import java.io.FileWriter;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import com.glocks.log.LogWriter;
-import com.glocks.pojo.MessageConfigurationDb;
-import com.glocks.pojo.PolicyBreachNotification;
 import com.glocks.util.Util;
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
 import java.text.DateFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;import org.apache.logging.log4j.Logger;
  
@@ -97,7 +81,7 @@ public class CEIRParserMain {
           ResultSet rs1 = null;
           Statement stmt = null;
           try {
-               query = "select * from system_config_list_db where tag='OPERATORS' and interp='" + operator + "'";
+              query = "select * from sys_param_list_value where tag='OPERATORS' and interpretation='" + operator + "'";
                logger.debug("get operator tag [" + query + "]");
                stmt = conn.createStatement();
                rs1 = stmt.executeQuery(query);

@@ -39,7 +39,7 @@ public class Query{
 		int numOfEffRec = 0;
 		try{
 			 // System.out.println("Query to create table is ["+query+"].");
-			conn = new MySQLConnection().getConnection();
+		//	conn = new MySQLConnection().getConnection();
 			st   = conn.createStatement();
 			numOfEffRec = st.executeUpdate(query);
 			if(numOfEffRec > 0)
@@ -67,7 +67,7 @@ public class Query{
 		Connection conn = null;
 		ResultSet rs    = null;
 		try{
-			conn                 = new MySQLConnection().getConnection();
+                    //conn                 = new MySQLConnection().getConnection();
 			DatabaseMetaData dmd = conn.getMetaData();
 			rs                   = dmd.getTables(null, null, "+tableName+" , null);
 			if(!rs.next()){
@@ -102,7 +102,7 @@ public class Query{
 
 		try{
 			// // System.out.println( "Query to run is ["+query+"]" );
-			conn = new MySQLConnection().getConnection();
+			//conn = new MySQLConnection().getConnection();
 			if(conn == null)
 				 // System.out.println("Connection is not working.");
 			stmt = conn.createStatement();
@@ -146,7 +146,7 @@ public class Query{
 		String query    = null;
 		try{
 			query = "select count(*) as cnt from `"+tableName+"`";
-			conn  = new MySQLConnection().getConnection();
+                    //conn  = new MySQLConnection().getConnection();
 			stmt  = conn.createStatement();
 			rs    = stmt.executeQuery(query);
 			while(rs.next()){
@@ -188,7 +188,7 @@ public class Query{
 		try{
 			query = "select `date` from `"+tableName+"` order by `date` desc limit 1";
                          // System.out.println(".. getLastDateTimeFromTable .. qry is ;;"+ query);
-			conn  = new MySQLConnection().getConnection();
+		//	conn  = new MySQLConnection().getConnection();
 			stmt  = conn.createStatement();
 			rs    = stmt.executeQuery(query);
 			if(rs != null){
@@ -246,7 +246,7 @@ public class Query{
 			}
 			qry  = ((qry.substring(0, qry.lastIndexOf(","))).trim() + " from "+repName).trim();
 			 // System.out.println("Query for getting column values is ["+qry+"]");
-			conn = new MySQLConnection().getConnection();
+			//conn = new MySQLConnection().getConnection();
 			stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 			rs   = stmt.executeQuery(qry);
 			if(rs != null){
@@ -323,7 +323,7 @@ public class Query{
 		try{
 			
 			qry  = "select * from "+repName;
-			conn = new MySQLConnection().getConnection();
+                    //conn = new MySQLConnection().getConnection();
 			stmt = conn.createStatement();
 			rs   = stmt.executeQuery(qry);
 			rsmd  = rs.getMetaData();
@@ -363,7 +363,7 @@ public class Query{
 		ResultSet rs    = null;
 		try{
 			query = "select MAX(`sno`) as sno from `"+repName+"`";
-			conn  = new MySQLConnection().getConnection();
+                    //conn  = new MySQLConnection().getConnection();
 			stmt  = conn.createStatement();
 			rs    = stmt.executeQuery(query);
 			while(rs.next()){
@@ -393,7 +393,7 @@ public class Query{
 		ResultSet rs    = null;
 		try{
 			query = "select `rep_name` from `rep_info` where rep_id ="+repId;
-			conn  = new MySQLConnection().getConnection();
+                    //	conn  = new MySQLConnection().getConnection();
 			stmt  = conn.createStatement();
 			rs    = stmt.executeQuery(query);
 			while(rs.next()){
@@ -424,7 +424,7 @@ public class Query{
 		ResultSet rs    = null;
 		try{
 			query = "select `rep_name` from `rep_info` where rep_name ='"+repName+"'";
-			conn  = new MySQLConnection().getConnection();
+                    //conn  = new MySQLConnection().getConnection();
 			stmt  = conn.createStatement();
 			rs    = stmt.executeQuery(query);
 			while(rs.next()){

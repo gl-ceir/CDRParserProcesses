@@ -27,7 +27,7 @@ public class DeleteFromBlackList {
 
      public static void main(String args[]) {
           Connection conn = null;
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+         //    conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
 
           try {
                deleteProcess(conn);

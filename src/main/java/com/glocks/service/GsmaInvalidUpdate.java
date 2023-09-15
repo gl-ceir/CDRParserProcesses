@@ -32,7 +32,7 @@ public class GsmaInvalidUpdate {
 
           Connection conn = null;
           logger.info(" GsmaInvalidUpdate.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+//          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
           GsmaInvalidUpdateServcImpl(conn);
           System.exit(0);
      }

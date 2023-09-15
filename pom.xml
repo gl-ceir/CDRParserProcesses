@@ -11,19 +11,17 @@
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.gl.ceir</groupId>
-    <artifactId>CEIRCdrParserM</artifactId>
+    <artifactId>EIRSCdrParserM</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
-    <name>CEIRCdrParser</name>
+    <name>EirsCdrParser</name>
 	 
-
     <properties>
         <start-class>com.glocks.parser.CdrParserProcess</start-class>
-</properties>
+    </properties>
   
     <dependencies>
-        
-         <dependency>
+        <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
         </dependency>
@@ -44,7 +42,6 @@
             <artifactId>spring-boot-starter-log4j2</artifactId>
         </dependency>
         
-        
         <dependency>
             <groupId>com.gl</groupId>
             <artifactId>Rule_engine</artifactId>
@@ -52,57 +49,34 @@
             <scope></scope>
         </dependency>
     
-    <dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
 
-         <dependency>
+        <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot</artifactId>    
             <version>2.0.0</version>
         </dependency>
-        
-        <!--        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-pool2</artifactId>
-        </dependency>-->
-        
-        
-        <!--        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
-        
-        
-          <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-log4j2</artifactId>
-  </dependency>
-  
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>    
-        </dependency>-->
-        
-        
-       
-      
-        <!--        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>-->
-        <!--        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-            <version>2.6.2</version>
-            <type>jar</type>
-        </dependency>-->
+            <artifactId>log4j-api</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+
     </dependencies>
    
 
     <build>
-        <finalName>CEIRCdrParser</finalName>
+        <finalName>EirsCdrParser</finalName>
        
         <plugins>
             <plugin>
@@ -169,4 +143,42 @@
 
     </properties>
     
-    -->
+-->
+
+
+
+<!--        <dependency>
+    <groupId>org.apache.commons</groupId>
+    <artifactId>commons-pool2</artifactId>
+</dependency>-->
+
+
+<!--        <dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+</dependency>
+
+
+  <dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+</dependency>-->
+
+
+
+
+<!--        <dependency>
+    <groupId>com.google.code.gson</groupId>
+    <artifactId>gson</artifactId>
+</dependency>-->
+<!--        <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-autoconfigure</artifactId>
+    <version>2.6.2</version>
+    <type>jar</type>
+</dependency>-->

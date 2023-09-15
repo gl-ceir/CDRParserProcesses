@@ -29,7 +29,7 @@ public class DvcUsageDb2 {
 
           Connection conn = null;
           logger.info(" DvcUsageDb2.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+         //    conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
           ImeiDetailsReportServcImpl(conn);
           System.exit(0);
      }
