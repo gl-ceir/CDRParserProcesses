@@ -1,5 +1,11 @@
 package com.glocks.util;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -10,15 +16,140 @@ import java.time.Month;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class tester {
 
     public static void main(String[] args) {
+        ReadWriteFile();
+        // main523();
+
+        //  System.out.println("StringToBinary: " + stringToBinary("Hello, World!"));
+    }
+
+    public static void ReadWriteFile() {
+        String file = "/home/maverick/Downloads/NewSmplFiles/metfone/mf_sgw/test.dat";
+        String outputFile = "";
+
+        String line = null;
+        try {
+
+            // Read file With Cdr Style  in Java 8
+//            try (Stream<String> lineStream = Files.lines(Paths.get(file))) {
+//                for (String lines : (Iterable<String>) () -> lineStream.iterator()) {
+//                    String[] data = lines.split(",", -1);
+//                }
+//            }
+            {
+                // Iterable< String> iterable = stringStream::iterator;
+
+//                for (int i = 0; i < 20; i++) {
+//                    stream.iterator()
+//                }
+//
+//                List<String> list = new ArrayList<>();
+//                for (String s : str.split(",")) {
+//                    list.add(s);
+//                }
+
+                //     List list = stream.map(str -> str.split(",")).collect(Collectors.toList());
+
+//                System.out.println("List Size : " + list.size());
+//                System.out.println("List 1: " + list.get(0).toString());
+//                System.out.println("List 2: " + list.get(1).toString());
+//                System.out.println("List 3: " + list.get(3).toString());
+
+            }
+
+//            FileReader fr = new FileReader(file);   // to read the file
+//            BufferedReader br = new BufferedReader(fr); // to read the lines in file
+            FileWriter fw = new FileWriter(outputFile);
+            BufferedReader br = new BufferedReader(new FileReader(file));
+
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",", -1);
+                fw.write(Arrays.toString(data));
+            }
+        } catch (Exception ex) {
+
+        }
+
+    }
+
+    {
+    }
+
+    public static void main523() {
+        char ch = 'a';
+        int as_chi = ch;
+        System.out.println("ASCII value of " + ch + " is - " + as_chi);
+
+        //  char ch = 'a';
+        int as_chiq = 'w';
+        System.out.println("ASCII value of  wis - " + as_chiq);
+
+        int as_chq = 'W';
+        System.out.println("ASCII value of  W is - " + as_chq);
+        int as_hiq = 'A';
+        System.out.println("ASCII value of  A is - " + as_hiq);
+        int a_chiq = 'p';
+        System.out.println("ASCII value of  p is - " + a_chiq);
+
+        int as_hq = '1';
+        System.out.println("ASCII value of  1 is - " + as_hq);
+        int a_ciq = '4';
+        System.out.println("ASCII value of  4 is - " + a_ciq);
+
+        int s_hq = 'Q';
+        System.out.println("ASCII value of  Q is - " + s_hq);
+        int ciq = '%';
+        System.out.println("ASCII value of  % is - " + ciq);
+
+    }
+
+    public static String stringToBinary(String inputString) {
+        StringBuilder binaryString = new StringBuilder();
+
+        for (char character : inputString.toCharArray()) {
+            System.out.println("character: " + character);
+            String binaryChar = Integer.toBinaryString(character);
+            System.out.println("binaryChar Length" + binaryChar.length());
+            while (binaryChar.length() < 8) {
+                binaryChar = "0" + binaryChar;
+            }
+            System.out.println("binaryChar " + binaryChar);
+            binaryString.append(binaryChar);
+        }
+
+        return binaryString.toString();
+    }
+
+    public static void main1(String[] args) {
 
         try {
+            String getTestImeis = "123,235,456,665,354";
+            String[] testImies = getTestImeis.split(",");
+
+            System.out.println("Format   1 " + Arrays.stream(testImies).anyMatch(s
+                    -> "123423414".startsWith(s)));
+            System.out.println("Format  2 " + Arrays.stream(testImies).anyMatch(s
+                    -> "665341".startsWith(s)));
+            System.out.println("Format  3 " + Arrays.stream(testImies).anyMatch(s
+                    -> "6535425452".startsWith(s)));
+            System.out.println("Format   4 " + Arrays.stream(testImies).anyMatch(s
+                    -> "4564235".startsWith(s)));
+            System.out.println("Format   5 " + Arrays.stream(testImies).anyMatch(s
+                    -> "35445222".startsWith(s)));
+
+            System.exit(0);
 
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -26,8 +157,6 @@ class tester {
             System.out.println("Format Date 2 " + new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("ddMMyyyy").parse("04012023")));
             System.out.println("Format Date 3 " + new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat("yyMMdd").parse("220422")));
 
-            
-            
             String dateInString = "20220411";
             LocalDate date = LocalDate.parse(dateInString);
             System.out.println("Date 3 " + date);
