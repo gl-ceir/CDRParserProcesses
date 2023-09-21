@@ -11,10 +11,10 @@
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.gl.ceir</groupId>
-    <artifactId>EIRSCdrParserM</artifactId>
+    <artifactId>EtlCdrParser</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
-    <name>EirsCdrParser</name>
+    <name>EtlCdrParser</name>
 	 
     <properties>
         <start-class>com.glocks.parser.CdrParserProcess</start-class>
@@ -76,7 +76,7 @@
    
 
     <build>
-        <finalName>EirsCdrParser</finalName>
+        <finalName>EtlCdrParser</finalName>
        
         <plugins>
             <plugin>

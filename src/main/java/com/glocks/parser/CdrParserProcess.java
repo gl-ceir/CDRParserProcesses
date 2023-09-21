@@ -5,6 +5,10 @@ import com.glocks.dao.MessageConfigurationDbDao;
 import com.glocks.dao.PolicyBreachNotificationDao;
 import com.glocks.db.ConnectionConfiguration;
 import com.glocks.files.FileList;
+//import static com.glocks.parser.CdrParserProcess.appdbName;
+//import static com.glocks.parser.CdrParserProcess.getFilePath;
+//import static com.glocks.parser.CdrParserProcess.logger;
+
 import java.io.File;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -54,7 +58,7 @@ public class CdrParserProcess {
     static String appdbName = null;
     static String auddbName = null;
     static String serverName = null;
-
+    static String dateFunction = null;
     public static PropertiesReader propertiesReader = null;
     static ConnectionConfiguration connectionConfiguration = null;
 
@@ -70,6 +74,7 @@ public class CdrParserProcess {
         appdbName = propertiesReader.appdbName;
         auddbName = propertiesReader.auddbName;
         serverName = propertiesReader.serverName;
+        dateFunction = Util.defaultDateNow(conn.toString().contains("oracle"));
         logger.info(" appdbName:" + appdbName);
 
         String filePath = null;
@@ -195,8 +200,7 @@ public class CdrParserProcess {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date date = new Date();
             String sdfTime = sdf.format(date);
-            boolean isOracle = conn.toString().contains("oracle");
-            String dateFunction = Util.defaultDateNow(isOracle);
+
             logger.debug("fileParseLimit " + fileParseLimit);
             // for (int i = 0; i <= fileParseLimit; i++) {
             br.readLine();
@@ -240,15 +244,15 @@ public class CdrParserProcess {
                     if (anyMatch) {
                         String qury = " insert into test_imei_details  " + "(imei ,IMSI, record_type , system_type , source,raw_cdr_file_name,imei_arrival_time ,operator, file_name ,msisdn, created_on , modified_on    )  values "
                                 + "('" + device_info.get("modified_imei") + "' , '" + device_info.get("IMSI") + "', '" + device_info.get("record_type") + "' ,'" + device_info.get("system_type") + "' , '" + device_info.get("source") + "',  '" + device_info.get("raw_cdr_file_name") + "', "
-                                + "'" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "', '" + device_info.get("file_name") + "',   '" + device_info.get("MSISDN") + "', now(),  now()   ) ";
-                        logger.debug(".test_imei_details :: ." + qury);
+                                + "'" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "', '" + device_info.get("file_name") + "',   '" + device_info.get("MSISDN") + "', " + dateFunction + ", " + dateFunction + "  ) ";
+                        logger.info(".test_imei_details Querry :: ." + qury);
                         executorService.execute(new InsertDbDao(conn, qury));
                     }
                     device_info.put("testImeiFlag", String.valueOf(anyMatch));
                     String failedRuleDate = null;
                     counter++;
                     if (device_info.get("MSISDN").startsWith("855") && device_info.get("IMSI").startsWith("456")) {
-                        // logger.debug("Local Sim  " + Arrays.toString(data));
+                        logger.debug("Local Sim  " + Arrays.toString(data));
                         device_info.put("msisdn_type", "LocalSim");
                         my_rule_detail = rule_filter.getMyRule(conn, device_info, rulelist);
                         logger.debug("getMyRule done with rule name " + my_rule_detail.get("rule_name") + " rule ID " + my_rule_detail.get("rule_id"));
@@ -265,7 +269,7 @@ public class CdrParserProcess {
                             failed_rule_name = null;
                             failed_rule_id = 0;
                         } else {
-                            //        logger.debug("FailedRule Categorization");
+                            logger.debug("FailedRule Categorization");
                             if (failed_rule_name.equalsIgnoreCase("EXIST_IN_GSMABLACKLIST_DB")
                                     || failed_rule_name.equalsIgnoreCase("EXIST_IN_BLACKLIST_DB")) {
                                 finalAction = "BLOCKED";
@@ -277,7 +281,7 @@ public class CdrParserProcess {
                             }
                         }
                     } else {
-                        //    logger.debug("Foreign Sim Started " + Arrays.toString(data));
+                        logger.debug("Foreign Sim Started " + Arrays.toString(data));
                         foreignMsisdn++;
                         device_info.put("msisdn_type", "ForeignSim");
                         if (enableForeignSimHandling.equals("False")) {
@@ -288,7 +292,7 @@ public class CdrParserProcess {
                     String gsmaTac = null;
                     if (validTacMap.containsKey(device_info.get("tac"))) {
                         gsmaTac = "V";
-                        //     logger.debug("allocation_date after   : ----" + validTacMap.get(device_info.get("tac")));
+                        logger.debug("allocation_date after   : ----" + validTacMap.get(device_info.get("tac")));
                         if (validTacMap.get(device_info.get("tac")).before(new Date())) {
                             device_info.put("isUsedFlag", "false");
                         } else {
@@ -296,13 +300,13 @@ public class CdrParserProcess {
                         }
                     } else {
                         gsmaTac = "I";
-                        //     logger.debug("allocation_date is null returning false  ");
+                        logger.debug("allocation_date is null returning false  ");
                         device_info.put("isUsedFlag", "false");
                     }
-                    //  logger.debug("Going To Insert /Update as Per Conditions for " + device_info.get("msisdn_type"));
+                    logger.debug("Going To Insert /Update as Per Conditions for " + device_info.get("msisdn_type"));
                     output = checkDeviceUsageDB(conn, device_info.get("modified_imei"), device_info.get("MSISDN"), device_info.get("imei_arrival_time"), device_info.get("msisdn_type"), device_info);
                     if (output == 0) { // imei not found in usagedb
-                        //      logger.debug("imei not found in usagedb");
+                              logger.debug("imei not found in usagedb");
                         my_query = getInsertUsageDbQuery(device_info, dateFunction, failed_rule_name, failed_rule_id, period, finalAction, failedRuleDate, server_origin, gsmaTac);
                         if (device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")) {
                             usageInsert++;
@@ -327,7 +331,7 @@ public class CdrParserProcess {
                             usageUpdateForeign++;
                         }
                     } else if (output == 2) { // imei found with different msisdn
-                        //      logger.debug("imei found with different msisdn");
+                              logger.debug("imei found with different msisdn");
                         output = checkDeviceDuplicateDB(conn, device_info.get("modified_imei"), device_info.get("MSISDN"), device_info.get("imei_arrival_time"), device_info.get("msisdn_type"), device_info);
                         switch (output) {
                             case 0:
@@ -360,7 +364,7 @@ public class CdrParserProcess {
                     if (my_query.contains("insert")) {
                         executorService.execute(new InsertDbDao(conn, my_query));
                     } else {
-                        //    logger.debug(" writing query in file== " + my_query);
+                        logger.debug(" writing query in file== " + my_query);
                         bw1.write(my_query + ";");
                         bw1.newLine();
                     }
@@ -371,7 +375,6 @@ public class CdrParserProcess {
 
             } // While End
             executorService.shutdown();
-
             Date p2Endtime = new Date();
             cdrFileDetailsUpdate(conn, operator, device_info.get("file_name"), usageInsert, usageUpdate, duplicateInsert, duplicateUpdate, nullInsert, nullUpdate, p2Starttime, p2Endtime, "all", counter, device_info.get("raw_cdr_file_name"),
                     foreignMsisdn, server_origin, usageInsertForeign, usageUpdateForeign, duplicateInsertForeign, duplicateUpdateForeign, errorCount);
@@ -663,22 +666,6 @@ public class CdrParserProcess {
         return rule_details;
     }
 
-    private static void insertIntoImsiChangeDB(Connection conn, HashMap<String, String> device_info, String oldImsi, String oldImsiDate, String msisdnType, String dbComer) {
-        String dbName
-                = msisdnType.equalsIgnoreCase("LocalSim")
-                ? "" + appdbName + ".active_imei_with_same_msisdn_different_imsi"
-                : "" + appdbName + ".active_foreign_imei_with_same_msisdn_different_imsi";
-
-        String value = " insert into " + dbName + " (imei ,msisdn,old_imsi,old_imsi_date,new_imsi, new_imsi_date,operator,file_name,created_on ,db_table ) values  ("
-                + " '" + device_info.get("IMEI") + "', '" + device_info.get("MSISDN") + "', '" + oldImsi + "', '" + oldImsiDate + "', '" + device_info.get("IMSI") + "', "
-                + " '" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "',  '" + device_info.get("file_name") + "',  now() ,  '" + dbComer + "'  ) ";
-        logger.info("New imsi Query ----" + value);
-        try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(value);
-        } catch (Exception e) {
-            logger.error("[Query]" + value + " []" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-        }
-    }
 
     private static Map getActualOperator(Connection conn) {
         Map<String, String> operatorSeries = new HashMap<String, String>();
@@ -708,18 +695,6 @@ public class CdrParserProcess {
         return value;
     }
 
-    private static void insertTestImei(Connection conn, HashMap<String, String> device_info) {
-        String qur = null;
-        try (Statement stmt = conn.createStatement();) {
-            qur = " insert into test_imei_details  " + "(imei ,IMSI, record_type , system_type , source,raw_cdr_file_name,imei_arrival_time ,operator, file_name ,msisdn, created_on , modified_on    )  values "
-                    + "('" + device_info.get("modified_imei") + "' , '" + device_info.get("IMSI") + "', '" + device_info.get("record_type") + "' ,'" + device_info.get("system_type") + "' , '" + device_info.get("source") + "',  '" + device_info.get("raw_cdr_file_name") + "', "
-                    + "'" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "', '" + device_info.get("file_name") + "',   '" + device_info.get("MSISDN") + "', now(),  now()   ) ";
-            logger.debug(".test_imei_details :: ." + qur);
-            stmt.executeUpdate(qur);
-        } catch (Exception e) {
-            logger.error("Error " + e + "[Query]" + qur);
-        }
-    }
 
     static void cdrFileDetailsUpdate(Connection conn, String operator, String fileName, int usageInsert, int usageUpdate, int duplicateInsert, int duplicateUpdate, int nullInsert, int nullUpdate, Date P2StartTime, Date P2EndTime, String source, int counter, String raw_cdr_file_name,
             int foreignMsisdn, String server_origin, int usageInsertForeign, int usageUpdateForeign, int duplicateInsertForeign, int duplicateUpdateForeign, int errorCount) {
@@ -833,8 +808,7 @@ public class CdrParserProcess {
     private static BufferedWriter getSqlFileWriter(Connection conn, String operator, String source, String file) {
         BufferedWriter bw1 = null;
         try {
-            String foldrName
-                    = getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
+            String foldrName = getFilePath(conn, "Sql_Query_Folder") + "/" + operator.toLowerCase() + "/"; //
             File file1 = new File(foldrName);
             if (!file1.exists()) {
                 file1.mkdir();
@@ -889,61 +863,6 @@ public class CdrParserProcess {
         return bw1;
     }
 
-    private static String getFileDetaiRecords(Connection conn, String operator) {
-        String basePath = "";
-        String intermPath = "";
-
-        BufferedReader br = null;
-        try {
-            basePath = getFilePath(conn, "smart_file_path");
-            if (!basePath.endsWith("/")) {
-                basePath += "/";
-            }
-            intermPath = basePath + operator.toLowerCase() + "/";
-
-        } catch (Exception e) {
-            logger.error("E " + e);
-        }
-        return intermPath;
-    }
-
-    private static String getFolderNameByOpertor(Connection conn, String intermPath, String opertor) {
-        String query = null;
-        String mainFolder = null;
-        String folderList = null;
-        Statement stmt = null;
-        ResultSet rs = null;
-        File fldr = null;
-        try {
-            query = "select value from " + appdbName + ".sys_param where tag= '" + opertor + "_folder_list'  ";
-            logger.debug("query: " + query);
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(query);
-            while (rs.next()) {
-                folderList = rs.getString("value");
-            }
-            rs.close();
-            stmt.close();
-            logger.debug("folderList: " + folderList);
-            String folderArr[] = folderList.split(",");
-            for (String val : folderArr) {
-                fldr = new File(intermPath + val.trim() + "/output/");
-                logger.debug("fldr : " + fldr);
-                logger.debug("fldr.listFiles().length : " + fldr.listFiles().length);
-                if (fldr.listFiles().length > 0) {
-                    mainFolder = val;
-                    break;
-                }
-            }
-            rs.close();
-            stmt.close();
-        } catch (Exception e) {
-            logger.error("Error : " + e);
-            e.printStackTrace();
-        }
-        return mainFolder + "/";
-    }
-
     private static int getExsistingSqlFileDetails(Connection conn, String operator, String source, String file) {
         int fileCount = 1;
         File file1 = null;
@@ -996,34 +915,6 @@ public class CdrParserProcess {
         return validTacMap;
     }
 
-//    private static HashMap getIsUsedDevice(Connection conn, String tac) {
-//        String timePeriod = getSystemConfigDetailsByTag(conn, "IS_USED_EXTENDED_DAYS");
-//        logger.info("Time Period in days  : ----" + timePeriod);
-//        Date allocation_date = null;
-//        String response = "false";
-//        String query = "select  DATE_ADD(allocation_date, INTERVAL " + timePeriod + " DAY  )  as  allocation_date from " + appdbName + ".mobile_device_repository where device_id ='" + tac + "'";
-//        logger.info("query  : ----" + query);
-//        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query);) {
-//            while (rs.next()) {
-//                allocation_date = rs.getDate("allocation_date");
-//            }
-//            if (allocation_date == null || allocation_date.equals(null)) {
-//                logger.info("allocation_date is null returning false  ");
-//                response = "false";
-//            } else {
-//                logger.info("allocation_date after  " + timePeriod + " days : ----" + allocation_date);
-//                if (allocation_date.before(new Date())) {
-//                    response = "false";
-//                } else {
-//                    response = "true";
-//                }
-//            }
-//            logger.debug("response : ----" + response);
-//        } catch (Exception e) {
-//            logger.error(e.getLocalizedMessage() + "" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-//        }
-//        return response;
-//    }
     public static String getFilePath(Connection conn, String tag_type) {
         String file_path = "";
         String query = null;
@@ -1089,4 +980,133 @@ public class CdrParserProcess {
         }
     }
 
+    private static void insertIntoImsiChangeDB(Connection conn, HashMap<String, String> device_info, String oldImsi, String oldImsiDate, String msisdnType, String dbComer) {
+        String dbName
+                = msisdnType.equalsIgnoreCase("LocalSim")
+                ? "" + appdbName + ".active_imei_with_same_msisdn_different_imsi"
+                : "" + appdbName + ".active_foreign_imei_with_same_msisdn_different_imsi";
+
+        String value = " insert into " + dbName + " (imei ,msisdn,old_imsi,old_imsi_date,new_imsi, new_imsi_date,operator,file_name,created_on ,db_table ) values  ("
+                + " '" + device_info.get("IMEI") + "', '" + device_info.get("MSISDN") + "', '" + oldImsi + "', '" + oldImsiDate + "', '" + device_info.get("IMSI") + "', "
+                + " '" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "',  '" + device_info.get("file_name") + "',  " + dateFunction + " ,  '" + dbComer + "'  ) ";
+        logger.info("New imsi Query ----" + value);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(value);
+        } catch (Exception e) {
+            logger.error("[Query]" + value + " []" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+        }
+    }
 }
+
+//    private static void insertIntoIms iChangeDB(Connection conn, HashMap<String, String> device_info, String oldImsi, String oldImsiDate, String msisdnType, String dbComer) {
+//        String dbName
+//                = msisdnType.equalsIgnoreCase("LocalSim")
+//                ? "" + appdbName + ".active_imei_with_same_msisdn_different_imsi"
+//                : "" + appdbName + ".active_foreign_imei_with_same_msisdn_different_imsi";
+//
+//        String value = " insert into " + dbName + " (imei ,msisdn,old_imsi,old_imsi_date,new_imsi, new_imsi_date,operator,file_name,created_on ,db_table ) values  ("
+//                + " '" + device_info.get("IMEI") + "', '" + device_info.get("MSISDN") + "', '" + oldImsi + "', '" + oldImsiDate + "', '" + device_info.get("IMSI") + "', "
+//                + " '" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "',  '" + device_info.get("file_name") + "',  " + dateFunction + " ,  '" + dbComer + "'  ) ";
+//        logger.info("New imsi Query ----" + value);
+//        try (Statement stmt = conn.createStatement()) {
+//            stmt.executeUpdate(value);
+//        } catch (Exception e) {
+//            logger.error("[Query]" + value + " []" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+//        }
+//    }
+
+//private static void insertTestImei(Connection conn, HashMap<String, String> device_info) {
+//        String qur = null;
+//        try (Statement stmt = conn.createStatement();) {
+//            qur = " insert into test_imei_details  " + "(imei ,IMSI, record_type , system_type , source,raw_cdr_file_name,imei_arrival_time ,operator, file_name ,msisdn, created_on , modified_on    )  values "
+//                    + "('" + device_info.get("modified_imei") + "' , '" + device_info.get("IMSI") + "', '" + device_info.get("record_type") + "' ,'" + device_info.get("system_type") + "' , '" + device_info.get("source") + "',  '" + device_info.get("raw_cdr_file_name") + "', "
+//                    + "'" + device_info.get("imei_arrival_time") + "', '" + device_info.get("operator") + "', '" + device_info.get("file_name") + "',   '" + device_info.get("MSISDN") + "'," + dateFunction + ", " + dateFunction + "   ) ";
+//            logger.debug(".test_imei_details :: ." + qur);
+//            stmt.executeUpdate(qur);
+//        } catch (Exception e) {
+//            logger.error("Error " + e + "[Query]" + qur);
+//        }
+//    }
+
+//    private static HashMap getIsUsedDevice(Connection conn, String tac) {
+//        String timePeriod = getSystemConfigDetailsByTag(conn, "IS_USED_EXTENDED_DAYS");
+//        logger.info("Time Period in days  : ----" + timePeriod);
+//        Date allocation_date = null;
+//        String response = "false";
+//        String query = "select  DATE_ADD(allocation_date, INTERVAL " + timePeriod + " DAY  )  as  allocation_date from " + appdbName + ".mobile_device_repository where device_id ='" + tac + "'";
+//        logger.info("query  : ----" + query);
+//        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query);) {
+//            while (rs.next()) {
+//                allocation_date = rs.getDate("allocation_date");
+//            }
+//            if (allocation_date == null || allocation_date.equals(null)) {
+//                logger.info("allocation_date is null returning false  ");
+//                response = "false";
+//            } else {
+//                logger.info("allocation_date after  " + timePeriod + " days : ----" + allocation_date);
+//                if (allocation_date.before(new Date())) {
+//                    response = "false";
+//                } else {
+//                    response = "true";
+//                }
+//            }
+//            logger.debug("response : ----" + response);
+//        } catch (Exception e) {
+//            logger.error(e.getLocalizedMessage() + "" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+//        }
+//        return response;
+//    }
+//private static String getFileDetaiRecords(Connection conn, String operator) {
+//        String basePath = "";
+//        String intermPath = "";
+//
+//        BufferedReader br = null;
+//        try {
+//            basePath = getFilePath(conn, "smart_file_path");
+//            if (!basePath.endsWith("/")) {
+//                basePath += "/";
+//            }
+//            intermPath = basePath + operator.toLowerCase() + "/";
+//
+//        } catch (Exception e) {
+//            logger.error("E " + e);
+//        }
+//        return intermPath;
+//    }
+//
+//    private static String getFolderNameByOpertor(Connection conn, String intermPath, String opertor) {
+//        String query = null;
+//        String mainFolder = null;
+//        String folderList = null;
+//        Statement stmt = null;
+//        ResultSet rs = null;
+//        File fldr = null;
+//        try {
+//            query = "select value from " + appdbName + ".sys_param where tag= '" + opertor + "_folder_list'  ";
+//            logger.debug("query: " + query);
+//            stmt = conn.createStatement();
+//            rs = stmt.executeQuery(query);
+//            while (rs.next()) {
+//                folderList = rs.getString("value");
+//            }
+//            rs.close();
+//            stmt.close();
+//            logger.debug("folderList: " + folderList);
+//            String folderArr[] = folderList.split(",");
+//            for (String val : folderArr) {
+//                fldr = new File(intermPath + val.trim() + "/output/");
+//                logger.debug("fldr : " + fldr);
+//                logger.debug("fldr.listFiles().length : " + fldr.listFiles().length);
+//                if (fldr.listFiles().length > 0) {
+//                    mainFolder = val;
+//                    break;
+//                }
+//            }
+//            rs.close();
+//            stmt.close();
+//        } catch (Exception e) {
+//            logger.error("Error : " + e);
+//            e.printStackTrace();
+//        }
+//        return mainFolder + "/";
+//    }
