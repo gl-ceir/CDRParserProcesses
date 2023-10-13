@@ -1083,7 +1083,7 @@ public class CdrParserProcess {
       
         String query = null;
         try (Statement stmt = conn.createStatement()) {
-            query = "update   " + auddbName + ".modules_audit_trail set status_code='" + statusCode + "',status='" + status + "',error_message='" + errorMessage + "', count='" + numberOfRecord + "',"
+            query = "update   " + auddbName + ".modules_audit_trail set status_code='" + statusCode + "',status='" + status + "',error_message='" + errorMessage + "', count='" +  (numberOfRecord - 1) + "',"
                     + "action='update',execution_time='" + executionFinishTiime + "',failure_count='" + failureCount + "' ,modified_on=CURRENT_TIMESTAMP where  id = " + id;
             logger.info(query);
             stmt.executeUpdate(query);
