@@ -1077,7 +1077,10 @@ public class CdrParserProcess {
     }
 
     public static void updateModuleAudit(Connection conn, int statusCode, String status, String errorMessage, int id, long executionStartTime, long numberOfRecord, int failureCount) {
-        long executionFinishTiime = (new Date().getTime()) - executionStartTime;
+       
+          long milliseconds = (new Date().getTime()) - executionStartTime;
+        String executionFinishTiime = (((milliseconds / 1000) / 60) / 60) + ":" + (((milliseconds / 1000) / 60) % 60) + ":" + ((milliseconds / 1000) % 60);
+      
         String query = null;
         try (Statement stmt = conn.createStatement()) {
             query = "update   " + auddbName + ".modules_audit_trail set status_code='" + statusCode + "',status='" + status + "',error_message='" + errorMessage + "', count='" + numberOfRecord + "',"
