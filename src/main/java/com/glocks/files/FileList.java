@@ -25,6 +25,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+//ETl-Class
 public class FileList {
 
     static Logger logger = LogManager.getLogger(FileList.class);
@@ -353,7 +354,7 @@ public class FileList {
         return result;
     }
 
-    public void moveCDRFile(Connection conn, String fileName, String opertorName1, String fileFolderPath, String source) {
+    public void moveCDRFile(Connection conn, String fileName, String opertorName1, String fileFolderPath, String source, String storagePath) {
 
         String opertorName = opertorName1.toLowerCase();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH");
@@ -364,7 +365,7 @@ public class FileList {
         String timeSec = myObj.toString().substring((myObj.toString().length() - 3), (myObj.toString().length()));
 
         File folder = null;
-        String storagePath = new com.glocks.parser.HexFileReader().getFilePath(conn, "CdrProcessedFileStoragePath");  //  with /
+        //  String storagePath = new com.glocks.parser.HexFileReader().getFilePath(conn, "CdrProcessedFileStoragePath");  //  with /
         folder = new File(storagePath + opertorName);
         try {
             if (!folder.exists()) {

@@ -36,770 +36,774 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+//Etl-Class
 
 public class HexFileReader {
 
-     // static Logger logger = LogManager.getLogger(HexFileReader.class);
-     // logger = LogManager.getLogger(HexFileReader.class);
-     static StackTraceElement l = new Exception().getStackTrace()[0];
+    // static Logger logger = LogManager.getLogger(HexFileReader.class);
+    // logger = LogManager.getLogger(HexFileReader.class);
+    static StackTraceElement l = new Exception().getStackTrace()[0];
 //   logger.error("" + l.getClassName()+"/"+l.getMethodName()+":"+l.getLineNumber()  + e);
-     Logger logger = LogManager.getLogger(HexFileReader.class);
-     private static final boolean String = false;
-     ZTEFields zte = new ZTEFields();
-     String[] fields = zte.zteCDRFields;
+    Logger logger = LogManager.getLogger(HexFileReader.class);
+    private static final boolean String = false;
+    ZTEFields zte = new ZTEFields();
+    String[] fields = zte.zteCDRFields;
 
-     public String getFields() {
-          String retVal = "{\"ColumnNames\":[";
-          String columnNames = "";
-          try {
-               for (String column : fields) {
-                    columnNames = columnNames + "{\"colName\":\"" + column + "\"},";
-               }
-               retVal = retVal + columnNames.substring(0, columnNames.length() - 1) + "]}";
-          } catch (Exception e) {
-               retVal = "{\"ColumnNames\":[{\"colName\":\"400\"},{\"colName\":\"No file found.\"}]}";
-               e.printStackTrace();
-          }
-          logger.info(retVal);
-          return retVal;
-     }
+    public String getFields() {
+        String retVal = "{\"ColumnNames\":[";
+        String columnNames = "";
+        try {
+            for (String column : fields) {
+                columnNames = columnNames + "{\"colName\":\"" + column + "\"},";
+            }
+            retVal = retVal + columnNames.substring(0, columnNames.length() - 1) + "]}";
+        } catch (Exception e) {
+            retVal = "{\"ColumnNames\":[{\"colName\":\"400\"},{\"colName\":\"No file found.\"}]}";
+            e.printStackTrace();
+        }
+        logger.info(retVal);
+        return retVal;
+    }
 
-     public boolean insertDataIntoRaw(String repName, HashMap<String, ArrayList<String>> fileData) throws SQLException {
-          int limit = 10000;
-          boolean result = false;
-          String query = null;
-          String values = "values(";
-          Connection conn = null;
-          PreparedStatement ps = null;
-          ResultSet rs = null;
-          try {
-               query = "insert into " + repName + "(";
-               for (String field : fields) {
-                    query = query + field + ",";
-                    values = values + "?,";
-               }
-               query = query.substring(0, query.length() - 1) + ") " + values.substring(0, values.length() - 1) + ")";
-               conn = new com.glocks.db.MySQLConnection().getConnection();
-               ps = conn.prepareStatement(query);
-               for (int j = 0; j < fileData.get(fields[0]).size(); j++) {
-                    for (int i = 0; i < fields.length; i++) {
-                         ps.setString(i + 1, fileData.get(fields[i]).get(j));
+    public boolean insertDataIntoRaw(String repName, HashMap<String, ArrayList<String>> fileData) throws SQLException {
+        int limit = 10000;
+        boolean result = false;
+        String query = null;
+        String values = "values(";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            query = "insert into " + repName + "(";
+            for (String field : fields) {
+                query = query + field + ",";
+                values = values + "?,";
+            }
+            query = query.substring(0, query.length() - 1) + ") " + values.substring(0, values.length() - 1) + ")";
+            conn = new com.glocks.db.MySQLConnection().getConnection();
+            ps = conn.prepareStatement(query);
+            for (int j = 0; j < fileData.get(fields[0]).size(); j++) {
+                for (int i = 0; i < fields.length; i++) {
+                    ps.setString(i + 1, fileData.get(fields[i]).get(j));
+                }
+                ps.addBatch();
+                if ((j % limit) == 0 && j != 0) {
+                    ps.executeBatch();
+                    logger.info("Data insert is [" + j + "]");
+                } else if (j == (fileData.get(fields[0]).size() - 1)) {
+                    ps.executeBatch();
+                    logger.info("Remaining data inserted is [" + j + "]");
+                }
+            }
+            conn.commit();
+            result = true;
+        } catch (Exception e) {
+            logger.error("Failed to insert data.");
+            conn.rollback();
+            logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            e.printStackTrace();
+        } finally {
+            try {
+                if (conn != null) {
+                    if (rs != null) {
+                        rs.close();
                     }
-                    ps.addBatch();
-                    if ((j % limit) == 0 && j != 0) {
-                         ps.executeBatch();
-                         logger.info("Data insert is [" + j + "]");
-                    } else if (j == (fileData.get(fields[0]).size() - 1)) {
-                         ps.executeBatch();
-                         logger.info("Remaining data inserted is [" + j + "]");
+                    if (ps != null) {
+                        ps.close();
                     }
-               }
-               conn.commit();
-               result = true;
-          } catch (Exception e) {
-               logger.error("Failed to insert data.");
-               conn.rollback();
-               logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               e.printStackTrace();
-          } finally {
-               try {
-                    if (conn != null) {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (ps != null) {
-                              ps.close();
-                         }
 //                    c onn.close();
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-          }
-          return result;
-     }
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+        }
+        return result;
+    }
 
-     public void readConvertedCSVFile(Connection conn, String fileName, String repName /*oprtator NAme */, String fileFolderPath, String source) {
-          int total_error_record_count = 0;
-          int k = 0;
-          int rowInserted = 0;
-          String query = null;
-          String failquery = null;
-          String values = "values(";
-          String failvalues = "values(";
-          PreparedStatement ps = null;
-          PreparedStatement failed_ps = null;
-          PreparedStatement temPS = null;
-          ResultSet rs = null;
+    public void readConvertedCSVFile(Connection conn, String fileName, String repName /*oprtator NAme */, String fileFolderPath, String source) {
+        int total_error_record_count = 0;
+        int k = 0;
+        int rowInserted = 0;
+        String query = null;
+        String failquery = null;
+        String values = "values(";
+        String failvalues = "values(";
+        PreparedStatement ps = null;
+        PreparedStatement failed_ps = null;
+        PreparedStatement temPS = null;
+        ResultSet rs = null;
 
-          String line = null;
-          String[] data = null;
-          BufferedReader br = null;
-          File file = null;
-          FileReader fr = null;
-          SimpleDateFormat actF = null;
-          SimpleDateFormat sdf = null;
-          HashMap<String, int[]> hm = new HashMap<String, int[]>();
-          int failed_flag = 1;
-          String updatetime = null;
-          try {
-               DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-               Date p1StartTime = new Date();
-               String usertype_name = "";
-               ArrayList<CDRColumn> myfilelist = getCDRFields(conn, "CDR", usertype_name);
-               logger.info("file list size is " + myfilelist.size());
-               actF = new SimpleDateFormat("yyyyMMddHHmmss"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
-               sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String line = null;
+        String[] data = null;
+        BufferedReader br = null;
+        File file = null;
+        FileReader fr = null;
+        SimpleDateFormat actF = null;
+        SimpleDateFormat sdf = null;
+        HashMap<String, int[]> hm = new HashMap<String, int[]>();
+        int failed_flag = 1;
+        String updatetime = null;
+        try {
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date p1StartTime = new Date();
+            String usertype_name = "";
+            ArrayList<CDRColumn> myfilelist = getCDRFields(conn, "CDR", usertype_name);
+            logger.info("file list size is " + myfilelist.size());
+            actF = new SimpleDateFormat("yyyyMMddHHmmss"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
+            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 //            String[] fileArray11 = fileName.split("_");
 //            String str1 = fileName.substring(0, fileName.length() - 10);
 //            String str2 = str1.substring(str1.length() - 14, str1.length());
-//            LocalDateTime now = LocalDateTime.now();  
+//            LocalDateTime now = LocalDateTime.now();
 //            updatetime = sdf.format("20200531123456");
-               updatetime = "2020-05-30 12:34:56";
-               file = new File(fileFolderPath + fileName);
-               fr = new FileReader(file);
-               br = new BufferedReader(fr);
+            updatetime = "2020-05-30 12:34:56";
+            file = new File(fileFolderPath + fileName);
+            fr = new FileReader(file);
+            br = new BufferedReader(fr);
 
-               query = "insert into " + repName + "_raw" + "(";
-               failquery = "insert into " + repName + "_error" + "(";
-               hm = zte.getfieldSet();
+            query = "insert into " + repName + "_raw" + "(";
+            failquery = "insert into " + repName + "_error" + "(";
+            hm = zte.getfieldSet();
 
-               int fail_my_batch = 0;
-               int pass_my_batch = 0;
-               int my_batch_count = 1;
-               String toDate = " ? ";
-               if (conn.toString().contains("oracle")) {
-                    toDate = " TO_DATE(?,'yyyy/mm/dd hh24:mi:ss') ";
-               }
-               boolean isOracle = conn.toString().contains("oracle");
-               String dateFunction = Util.defaultDate(isOracle);
-               while ((line = br.readLine()) != null) {
-                    data = line.split(",", -1);
-                    if (k == 0) {
-                         logger.debug(" data length in file is " + data.length + ".. field List(DB) size is " + myfilelist.size());
-                         if (data.length == myfilelist.size()) {
-                              logger.debug("Configured Column name and File Headers are matched");
-                              int my_column_count = 0;
-                              for (CDRColumn cdrColumn : myfilelist) {
-                                   if ((cdrColumn.columName).trim().equals(data[my_column_count].trim())) {
-                                        logger.debug("Column name matched");
-                                        my_column_count++;
-                                        query = query + cdrColumn.columName + ",";
-                                        values = values + "?,";
-                                        failquery = failquery + cdrColumn.columName + ",";   //
-                                        failvalues = failvalues + " ?, ";                           //
-                                   }
+            int fail_my_batch = 0;
+            int pass_my_batch = 0;
+            int my_batch_count = 1;
+            String toDate = " ? ";
+            if (conn.toString().contains("oracle")) {
+                toDate = " TO_DATE(?,'yyyy/mm/dd hh24:mi:ss') ";
+            }
+            boolean isOracle = conn.toString().contains("oracle");
+            String dateFunction = Util.defaultDate(isOracle);
+            while ((line = br.readLine()) != null) {
+                data = line.split(",", -1);
+                if (k == 0) {
+                    logger.debug(" data length in file is " + data.length + ".. field List(DB) size is " + myfilelist.size());
+                    if (data.length == myfilelist.size()) {
+                        logger.debug("Configured Column name and File Headers are matched");
+                        int my_column_count = 0;
+                        for (CDRColumn cdrColumn : myfilelist) {
+                            if ((cdrColumn.columName).trim().equals(data[my_column_count].trim())) {
+                                logger.debug("Column name matched");
+                                my_column_count++;
+                                query = query + cdrColumn.columName + ",";
+                                values = values + "?,";
+                                failquery = failquery + cdrColumn.columName + ",";   //
+                                failvalues = failvalues + " ?, ";                           //
+                            }
 
-                              }
-                              if (my_column_count == myfilelist.size()) {
-                                   query = query + "operator" + "," + "file_name" + "," + "record_time" + "," + "status" + ", created_on,modified_on   ";
-                                   values = values + "?,?, " + toDate + " ,'Init'," + dateFunction + ", " + dateFunction + "  ";
-                                   query = query.substring(0, query.length() - 1) + ") "
-                                           + values.substring(0, values.length() - 1) + ")";
-                                   ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-                                   failquery = failquery + "operator" + "," + "file_name" + "," + "record_time" + "," + "status" + ", created_on,modified_on   ";     // why not comma 
-                                   failvalues = failvalues + "?,?, " + toDate + ",'Error'," + dateFunction + ", " + dateFunction + "   ";   // 
-                                   failquery = failquery.substring(0, failquery.length() - 1) + ") "
-                                           + failvalues.substring(0, failvalues.length() - 1) + ")";
-                                   failed_ps = conn.prepareStatement(failquery, Statement.RETURN_GENERATED_KEYS);
-                                   logger.debug("complete query is [" + query + "]");
-                                   logger.debug("complete error " + failquery);
-                              } else {
-                                   // logger.info("getting error in file so moving the file ");
-                                   fr.close();
-                                   new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
-                                   logger.warn("Total column are not matched" + my_column_count);
-                                   break;
-                              }
-                         } else {
-                              logger.warn("getting error in file so moving the file ");
-                              fr.close();
-                              logger.warn("Configured Comumn nad File headers are not matched");
-                              new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
-                         }
-                    } else {    // k = 0 End
-                         int j = 1;               ///  
-                         failed_flag = 1;
-                         for (CDRColumn cdrColumn : myfilelist) {
-                              logger.debug(j + "   <-- FIELD -> " + data[j - 1]);
-                              if (cdrColumn.graceType.equalsIgnoreCase("Mandatory")) {
-                                   logger.debug(j + "   <--Mandatory field -> " + data[j - 1]);
-                                   if (data[j - 1].equals("") || " ".equals(data[j - 1]) || data[j - 1].equals(" ") || data[j - 1] == null) {
-                                        logger.debug(" No data " + data[j - 1]);
-                                        failed_flag = 0;
-                                   }
+                        }
+                        if (my_column_count == myfilelist.size()) {
+                            query = query + "operator" + "," + "file_name" + "," + "record_time" + "," + "status" + ", created_on,modified_on   ";
+                            values = values + "?,?, " + toDate + " ,'Init'," + dateFunction + ", " + dateFunction + "  ";
+                            query = query.substring(0, query.length() - 1) + ") "
+                                    + values.substring(0, values.length() - 1) + ")";
+                            ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+                            failquery = failquery + "operator" + "," + "file_name" + "," + "record_time" + "," + "status" + ", created_on,modified_on   ";     // why not comma
+                            failvalues = failvalues + "?,?, " + toDate + ",'Error'," + dateFunction + ", " + dateFunction + "   ";   //
+                            failquery = failquery.substring(0, failquery.length() - 1) + ") "
+                                    + failvalues.substring(0, failvalues.length() - 1) + ")";
+                            failed_ps = conn.prepareStatement(failquery, Statement.RETURN_GENERATED_KEYS);
+                            logger.debug("complete query is [" + query + "]");
+                            logger.debug("complete error " + failquery);
+                        } else {
+                            // logger.info("getting error in file so moving the file ");
+                            fr.close();
+                            // new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
+                            logger.warn("Total column are not matched" + my_column_count);
+                            break;
+                        }
+                    } else {
+                        logger.warn("getting error in file so moving the file ");
+                        fr.close();
+                        logger.warn("Configured Comumn nad File headers are not matched");
+                        //  new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
+                    }
+                } else {    // k = 0 End
+                    int j = 1;               ///
+                    failed_flag = 1;
+                    for (CDRColumn cdrColumn : myfilelist) {
+                        logger.debug(j + "   <-- FIELD -> " + data[j - 1]);
+                        if (cdrColumn.graceType.equalsIgnoreCase("Mandatory")) {
+                            logger.debug(j + "   <--Mandatory field -> " + data[j - 1]);
+                            if (data[j - 1].equals("") || " ".equals(data[j - 1]) || data[j - 1].equals(" ") || data[j - 1] == null) {
+                                logger.debug(" No data " + data[j - 1]);
+                                failed_flag = 0;
+                            }
 //                             j++;
-                              }
-                              j++;
-                         }
-                         j = 1;
+                        }
+                        j++;
+                    }
+                    j = 1;
 
-                         if (failed_flag == 1) {
-                              for (; j <= data.length; j++) {
-                                   ps.setString(j, data[j - 1].trim());
-                              }
-                              ps.setString(j, repName);
-                              ps.setString(j + 1, fileName);
-                              ps.setString(j + 2, updatetime);
+                    if (failed_flag == 1) {
+                        for (; j <= data.length; j++) {
+                            ps.setString(j, data[j - 1].trim());
+                        }
+                        ps.setString(j, repName);
+                        ps.setString(j + 1, fileName);
+                        ps.setString(j + 2, updatetime);
 //                        logger.info(" query Pass+ ");
-                              ps.addBatch();
-                              pass_my_batch++;
-                         }
-                         if (failed_flag == 0) {
-                              total_error_record_count++;
+                        ps.addBatch();
+                        pass_my_batch++;
+                    }
+                    if (failed_flag == 0) {
+                        total_error_record_count++;
 //                        logger.info("Fail before  For  " + data.length);
-                              for (; j <= data.length; j++) {
+                        for (; j <= data.length; j++) {
 //                            logger.info("inside For:::    " + j + " :: " + data[j - 1].trim());
-                                   failed_ps.setString(j, data[j - 1].trim());
-                              }
-                              failed_ps.setString(j, repName);
-                              failed_ps.setString(j + 1, fileName);
-                              failed_ps.setString(j + 2, updatetime);
-                              failed_ps.addBatch();
-                              fail_my_batch++;
-                         }
+                            failed_ps.setString(j, data[j - 1].trim());
+                        }
+                        failed_ps.setString(j, repName);
+                        failed_ps.setString(j + 1, fileName);
+                        failed_ps.setString(j + 2, updatetime);
+                        failed_ps.addBatch();
+                        fail_my_batch++;
                     }
-                    k++;
-                    if (pass_my_batch == my_batch_count) {
-                         logger.debug("Executing Pass batch..... " + k);
-                         ps.executeBatch();
-                         pass_my_batch = 0;
-                         logger.debug("..... " + k);
-                         conn.commit();
+                }
+                k++;
+                if (pass_my_batch == my_batch_count) {
+                    logger.debug("Executing Pass batch..... " + k);
+                    ps.executeBatch();
+                    pass_my_batch = 0;
+                    logger.debug("..... " + k);
+                    conn.commit();
+                }
+                if (fail_my_batch == my_batch_count) {
+                    logger.debug("Executing Fail batch.." + k);
+                    failed_ps.executeBatch();
+                    fail_my_batch = 0;
+                    conn.commit();
+                }
+                logger.info(k);
+            }    // while End
+
+            logger.info("File Finished ");
+            ps.executeBatch();
+            failed_ps.executeBatch();
+            conn.commit();
+            Date p1EndTime = new Date();
+            source = source.replace("_output", "");
+
+            cdrFileDetailsInsert(conn, dateFunction, fileName, repName, k - 1, total_error_record_count, p1StartTime, p1EndTime, source);  //total_records_count
+
+            //            conn.commit();
+            if (fr != null) {
+                fr.close();
+            }
+
+            rowInserted = ps.getUpdateCount();
+            rs = ps.getGeneratedKeys();
+            logger.debug("sys insert close ");
+            //  new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
+
+        } catch (Exception e) {
+            logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            e.printStackTrace();
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (Exception ex) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+
+        } finally {
+            try {
+                if (conn != null) {
+                    if (rs != null) {
+                        rs.close();
                     }
-                    if (fail_my_batch == my_batch_count) {
-                         logger.debug("Executing Fail batch.." + k);
-                         failed_ps.executeBatch();
-                         fail_my_batch = 0;
-                         conn.commit();
+                    if (ps != null) {
+                        ps.clearParameters();
+                        ps.close();
                     }
-                    logger.info(k);
-               }    // while End
+                }
 
-               logger.info("File Finished ");
-               ps.executeBatch();
-               failed_ps.executeBatch();
-               conn.commit();
-               Date p1EndTime = new Date();
-               source = source.replace("_output", "");
-
-               cdrFileDetailsInsert(conn, dateFunction, fileName, repName, k - 1, total_error_record_count, p1StartTime, p1EndTime, source);  //total_records_count
-
-               //            conn.commit();
-               if (fr != null) {
-                    fr.close();
-               }
-
-               rowInserted = ps.getUpdateCount();
-               rs = ps.getGeneratedKeys();
-               logger.debug("sys insert close ");
-               new com.glocks.files.FileList().moveCDRFile(conn, fileName, repName, fileFolderPath, source);
-
-          } catch (Exception e) {
-               logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               e.printStackTrace();
-               try {
-                    if (conn != null) {
-                         conn.rollback();
-                    }
-               } catch (Exception ex) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-
-          } finally {
-               try {
-                    if (conn != null) {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (ps != null) {
-                              ps.clearParameters();
-                              ps.close();
-                         }
-                    }
-
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-//            
-          }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+//
+        }
 //        return result;
-     }
+    }
 
-     public String[] readConvertedFeatureFile(Connection conn, String fileName, String filePath, String main_type, String basePath, String txn_id, String subfeature, String management_table, String usertype_name) throws IOException, SQLException {
-          int i = 0;
-          int k = 0;
-          String query = null;
-          String values = "values(";
-          boolean isOracle = conn.toString().contains("oracle");
-          String dateFunction = Util.defaultDate(isOracle);
-          PreparedStatement ps = null;
-          ResultSet rs = null;
-          File file = null;
-          String line = null;
-          String[] data = null;
-          BufferedReader br = null;
-          FileWriter fw = null;
-          FileReader fr = null;
-          String[] result = null;
-          SimpleDateFormat actF = null;
-          SimpleDateFormat sdf = null;
-          DataInputStream dis = null;
-          FileInputStream fis = null;
-          int conVal = 0;
-          int totalBlnkLine = 0;
-          int ooo9Break = 0;
-          int failed_flag = 1;
-          String my_column_name = "";
-          ErrorFileGenrator errFile = new ErrorFileGenrator();
-          Set<String> set = new HashSet<String>();
-          Set<String> hash_Set = new HashSet<String>();
-          HashMap<String, String> msgConfig = new HashMap<String, String>();
-          ArrayList<String> fileLines = new ArrayList<String>();
-          try {
-               String SNofDeviceValue = null;
-               CEIRFeatureFileFunctions ceirfunction = new CEIRFeatureFileFunctions();
-               List<String> sourceTacList = new ArrayList<String>();
-               ArrayList<CDRColumn> myfilelist = getCDRFields(conn, main_type, usertype_name);
-               logger.debug("file list size is " + myfilelist.size());
-               logger.info("File Name is " + fileName);
-               Date date = new Date();
-               SimpleDateFormat DateFor = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-               String stringDate = DateFor.format(date);
-               String P1date = stringDate;
-               System.out.println(stringDate);
-               actF = new SimpleDateFormat("yyyyMddHHmmssSS"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
-               sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public String[] readConvertedFeatureFile(Connection conn, String fileName, String filePath, String main_type, String basePath, String txn_id, String subfeature, String management_table, String usertype_name) throws IOException, SQLException {
+        int i = 0;
+        int k = 0;
+        String query = null;
+        String values = "values(";
+        boolean isOracle = conn.toString().contains("oracle");
+        String dateFunction = Util.defaultDate(isOracle);
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        File file = null;
+        String line = null;
+        String[] data = null;
+        BufferedReader br = null;
+        FileWriter fw = null;
+        FileReader fr = null;
+        String[] result = null;
+        SimpleDateFormat actF = null;
+        SimpleDateFormat sdf = null;
+        DataInputStream dis = null;
+        FileInputStream fis = null;
+        int conVal = 0;
+        int totalBlnkLine = 0;
+        int ooo9Break = 0;
+        int failed_flag = 1;
+        String my_column_name = "";
+        ErrorFileGenrator errFile = new ErrorFileGenrator();
+        Set<String> set = new HashSet<String>();
+        Set<String> hash_Set = new HashSet<String>();
+        HashMap<String, String> msgConfig = new HashMap<String, String>();
+        ArrayList<String> fileLines = new ArrayList<String>();
+        try {
+            String SNofDeviceValue = null;
+            CEIRFeatureFileFunctions ceirfunction = new CEIRFeatureFileFunctions();
+            List<String> sourceTacList = new ArrayList<String>();
+            ArrayList<CDRColumn> myfilelist = getCDRFields(conn, main_type, usertype_name);
+            logger.debug("file list size is " + myfilelist.size());
+            logger.info("File Name is " + fileName);
+            Date date = new Date();
+            SimpleDateFormat DateFor = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String stringDate = DateFor.format(date);
+            String P1date = stringDate;
+            System.out.println(stringDate);
+            actF = new SimpleDateFormat("yyyyMddHHmmssSS"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
+            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 //             String[] fileArray = fileName.split("_");
-               Statement st5 = conn.createStatement();
-               String qry = " select quantity, device_quantity from  " + main_type.trim().toLowerCase() + "_mgmt where txn_id  = '" + txn_id + "'";
-               if (main_type.equalsIgnoreCase("Stolen") || main_type.equalsIgnoreCase("Recovery")
-                       || main_type.equalsIgnoreCase("Block") || main_type.equalsIgnoreCase("Unblock")) {
-                    qry = "  select  quantity, device_quantity from stolenand_recovery_mgmt  where txn_id  = '" + txn_id + "'  ";
-               }
-               new FeatureForSingleStolenBlock().deleteFromRawTable(conn, txn_id, main_type);
-               ResultSet resul5 = st5.executeQuery(qry);
-               logger.info("query for quantity .." + qry);
-               long fileCnt = 0;
-               int deviceQuantity = 0;
-               try {
-                    while (resul5.next()) {
-                         fileCnt = resul5.getInt("quantity");
-                         deviceQuantity = resul5.getInt("device_quantity");
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-                    logger.info("Error at file Count Quality  " + e);
-               }
-               st5.close();
-               file = new File(filePath);
-               fr = new FileReader(file);
-               br = new BufferedReader(fr);
-               query = "insert into " + main_type + "_raw" + "( ";
-               int pass_my_batch = 0;
-               int cnt = 0;
-               int my_batch_count = 10;   //  raw_upload_set_no1 but tbl removed
-               List aList = new ArrayList();
-               List aList1 = new ArrayList();
-               List alst = new ArrayList();
-               String errorString = " , ";
-               Statement stmt2 = conn.createStatement();
-               ResultSet rsult = stmt2.executeQuery("select tag ,value from message_configuration_db");
-               try {
-                    while (rsult.next()) {
-                         msgConfig.put(rsult.getString("tag"), rsult.getString("value"));
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-               rsult.close();
-               String interpQury = " select interp from system_config_list_db where tag =  ";
+            Statement st5 = conn.createStatement();
+            String qry = " select quantity, device_quantity from  " + main_type.trim().toLowerCase() + "_mgmt where txn_id  = '" + txn_id + "'";
+            if (main_type.equalsIgnoreCase("Stolen") || main_type.equalsIgnoreCase("Recovery")
+                    || main_type.equalsIgnoreCase("Block") || main_type.equalsIgnoreCase("Unblock")) {
+                qry = "  select  quantity, device_quantity from stolenand_recovery_mgmt  where txn_id  = '" + txn_id + "'  ";
+            }
+            new FeatureForSingleStolenBlock().deleteFromRawTable(conn, txn_id, main_type);
+            ResultSet resul5 = st5.executeQuery(qry);
+            logger.info("query for quantity .." + qry);
+            long fileCnt = 0;
+            int deviceQuantity = 0;
+            try {
+                while (resul5.next()) {
+                    fileCnt = resul5.getInt("quantity");
+                    deviceQuantity = resul5.getInt("device_quantity");
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+                logger.info("Error at file Count Quality  " + e);
+            }
+            st5.close();
+            file = new File(filePath);
+            fr = new FileReader(file);
+            br = new BufferedReader(fr);
+            query = "insert into " + main_type + "_raw" + "( ";
+            int pass_my_batch = 0;
+            int cnt = 0;
+            int my_batch_count = 10;   //  raw_upload_set_no1 but tbl removed
+            List aList = new ArrayList();
+            List aList1 = new ArrayList();
+            List alst = new ArrayList();
+            String errorString = " , ";
+            Statement stmt2 = conn.createStatement();
+            ResultSet rsult = stmt2.executeQuery("select tag ,value from message_configuration_db");
+            try {
+                while (rsult.next()) {
+                    msgConfig.put(rsult.getString("tag"), rsult.getString("value"));
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+            rsult.close();
+            String interpQury = " select interp from system_config_list_db where tag =  ";
 
-               ResultSet result1 = stmt2.executeQuery(interpQury + " 'DEVICE_TYPE'");
-               Set<String> deviceType = new HashSet<String>();
-               try {
-                    while (result1.next()) {
-                         deviceType.add(result1.getString("interp").toLowerCase());
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-               stmt2.close();
-               Statement stmt3 = conn.createStatement();
-               ResultSet result3 = stmt3.executeQuery(interpQury + " 'DEVICE_ID_TYPE' ");
-               Set<String> deviceType3 = new HashSet<String>();
-               try {
-                    while (result3.next()) {
-                         deviceType3.add(result3.getString("interp").toLowerCase());
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-                    logger.info("Error at DEVICE_ID_TYPE " + e);
-               }
-               stmt3.close();
-               Statement stmt4 = conn.createStatement();
-               ResultSet result4 = stmt4.executeQuery(interpQury + " 'MULTI_SIM_STATUS' ");
-               Set<String> deviceType4 = new HashSet<String>();
-               try {
-                    while (result4.next()) {
-                         deviceType4.add(result4.getString("interp").toLowerCase());
-                    }
-               } catch (Exception e) {
-                    logger.info("Error at MULTI_SIM_STATUS " + e);
-               }
-               stmt4.close();
-               Statement stmt5 = conn.createStatement();
-               ResultSet result5 = stmt5.executeQuery(interpQury + " 'DEVICE_STATUS'");
-               Set<String> deviceType5 = new HashSet<String>();
-               try {
-                    while (result5.next()) {
-                         deviceType5.add(result5.getString(1).toLowerCase());
-                    }
-               } catch (Exception e) {
-                    logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-               stmt5.close();
-               String errorFilePath = CEIRFeatureFileParser.getErrorFilePath(conn);
-               String error_file_path = errorFilePath + txn_id + "/" + txn_id + "_error.csv";
-               logger.info("error_file_path " + error_file_path);
-               while ((line = br.readLine()) != null) {
-                    data = line.split(",", -1);
-                    logger.info("line is " + line + "  line length " + line.trim().length());
+            ResultSet result1 = stmt2.executeQuery(interpQury + " 'DEVICE_TYPE'");
+            Set<String> deviceType = new HashSet<String>();
+            try {
+                while (result1.next()) {
+                    deviceType.add(result1.getString("interp").toLowerCase());
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+            stmt2.close();
+            Statement stmt3 = conn.createStatement();
+            ResultSet result3 = stmt3.executeQuery(interpQury + " 'DEVICE_ID_TYPE' ");
+            Set<String> deviceType3 = new HashSet<String>();
+            try {
+                while (result3.next()) {
+                    deviceType3.add(result3.getString("interp").toLowerCase());
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+                logger.info("Error at DEVICE_ID_TYPE " + e);
+            }
+            stmt3.close();
+            Statement stmt4 = conn.createStatement();
+            ResultSet result4 = stmt4.executeQuery(interpQury + " 'MULTI_SIM_STATUS' ");
+            Set<String> deviceType4 = new HashSet<String>();
+            try {
+                while (result4.next()) {
+                    deviceType4.add(result4.getString("interp").toLowerCase());
+                }
+            } catch (Exception e) {
+                logger.info("Error at MULTI_SIM_STATUS " + e);
+            }
+            stmt4.close();
+            Statement stmt5 = conn.createStatement();
+            ResultSet result5 = stmt5.executeQuery(interpQury + " 'DEVICE_STATUS'");
+            Set<String> deviceType5 = new HashSet<String>();
+            try {
+                while (result5.next()) {
+                    deviceType5.add(result5.getString(1).toLowerCase());
+                }
+            } catch (Exception e) {
+                logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+            stmt5.close();
+            String errorFilePath = CEIRFeatureFileParser.getErrorFilePath(conn);
+            String error_file_path = errorFilePath + txn_id + "/" + txn_id + "_error.csv";
+            logger.info("error_file_path " + error_file_path);
+            while ((line = br.readLine()) != null) {
+                data = line.split(",", -1);
+                logger.info("line is " + line + "  line length " + line.trim().length());
 
-                    if (line.replace(",", " ").trim().length() > 0) {
-                         errorString = "";
-                         if (k == 0) {    // check header
-                              if (data.length == 1) {
-                                   logger.info(" File is corrupted " + data.toString() + "  ... " + line);
-                                   errFile.gotoErrorFile(conn, txn_id, "   Error Code :CON_FILE_0010, Error Message: The file is corrupt.    ");
-                                   failed_flag = 0;
-                                   fr.close();/////////
-                                   break;
-                              }
+                if (line.replace(",", " ").trim().length() > 0) {
+                    errorString = "";
+                    if (k == 0) {    // check header
+                        if (data.length == 1) {
+                            logger.info(" File is corrupted " + data.toString() + "  ... " + line);
+                            errFile.gotoErrorFile(conn, txn_id, "   Error Code :CON_FILE_0010, Error Message: The file is corrupt.    ");
+                            failed_flag = 0;
+                            fr.close();/////////
+                            break;
+                        }
 
-                              logger.info(" Check for File Column Empty ");
-                              for (int fldCount = 0; fldCount < data.length; fldCount++) {
-                                   if (data[fldCount].equals("") || data[fldCount] == "") {
-                                        logger.info(" File Column is Empty ");
-                                        errFile.gotoErrorFile(conn, txn_id, "    Error Code :CON_FILE_0009, Error Message: The header is not found in the file.    "); /////////
-                                        ooo9Break = 1;
-                                        failed_flag = 0;
-                                        fr.close();
-                                        break;
-                                   } else {
-                                        alst.add(data[fldCount]);
-                                   }
-                              }
-                              if (ooo9Break == 1) {
-                                   failed_flag = 0;
-                                   break;
-                              }
-                              logger.info(" Check for Configured Column name match with File Headers ");
+                        logger.info(" Check for File Column Empty ");
+                        for (int fldCount = 0; fldCount < data.length;
+                                fldCount++) {
+                            if (data[fldCount].equals("") || data[fldCount] == "") {
+                                logger.info(" File Column is Empty ");
+                                errFile.gotoErrorFile(conn, txn_id, "    Error Code :CON_FILE_0009, Error Message: The header is not found in the file.    "); /////////
+                                ooo9Break = 1;
+                                failed_flag = 0;
+                                fr.close();
+                                break;
+                            } else {
+                                alst.add(data[fldCount]);
+                            }
+                        }
+                        if (ooo9Break == 1) {
+                            failed_flag = 0;
+                            break;
+                        }
+                        logger.info(" Check for Configured Column name match with File Headers ");
 
-                              logger.info("data.length " + data.length);
-                              logger.info(" myfilelist.size()" + myfilelist.size());
+                        logger.info("data.length " + data.length);
+                        logger.info(" myfilelist.size()" + myfilelist.size());
 
-                              if (data.length == myfilelist.size()) {
+                        if (data.length == myfilelist.size()) {
 
-                                   logger.info("Configured Column name and File Headers are matched");
-                                   int my_column_count = 0;
+                            logger.info("Configured Column name and File Headers are matched");
+                            int my_column_count = 0;
 
-                                   for (CDRColumn cdrColumn : myfilelist) {
-                                        my_column_name = data[my_column_count].trim();
-                                        my_column_name = my_column_name.replaceAll(" ", "");
-                                        my_column_name = my_column_name.replaceAll("_", "");
-                                        my_column_name = my_column_name.replaceAll(" ", "");
-                                        my_column_name = my_column_name.replaceAll("/", "");
-                                        logger.info(cdrColumn.columName + " file column " + data[my_column_count].trim());
+                            for (CDRColumn cdrColumn : myfilelist) {
+                                my_column_name = data[my_column_count].trim();
+                                my_column_name = my_column_name.replaceAll(" ", "");
+                                my_column_name = my_column_name.replaceAll("_", "");
+                                my_column_name = my_column_name.replaceAll(" ", "");
+                                my_column_name = my_column_name.replaceAll("/", "");
+                                logger.info(cdrColumn.columName + " file column " + data[my_column_count].trim());
 
-                                        if (cdrColumn.columName.equalsIgnoreCase("SNofDevice")) {
-                                             SNofDeviceValue = cdrColumn.graceType;
-                                             logger.info(cdrColumn.columName + " //SNofDeviceValue...." + SNofDeviceValue);
+                                if (cdrColumn.columName.equalsIgnoreCase("SNofDevice")) {
+                                    SNofDeviceValue = cdrColumn.graceType;
+                                    logger.info(cdrColumn.columName + " //SNofDeviceValue...." + SNofDeviceValue);
 
-                                        }
+                                }
 
-                                        if ((cdrColumn.columName).trim().equalsIgnoreCase(my_column_name)) {
-                                             logger.info("column name matchedd...." + my_column_name);
-                                             my_column_count++;
-                                        } else {
-                                             logger.info("column name  NOTT matchedd ");
-                                             logger.info(alst.toArray());
+                                if ((cdrColumn.columName).trim().equalsIgnoreCase(my_column_name)) {
+                                    logger.info("column name matchedd...." + my_column_name);
+                                    my_column_count++;
+                                } else {
+                                    logger.info("column name  NOTT matchedd ");
+                                    logger.info(alst.toArray());
 
 //                                             if (!alst.contains(my_column_name)) {      //  aug5
-                                             failed_flag = 0;
-                                             logger.info("Column name not matched");
-                                             errFile.gotoErrorFile(conn, txn_id, "  Error Code :CON_FILE_0001, Error Message: The header name in the file is not correct   "); /////////
-                                             conVal = 1;
-                                             break;
+                                    failed_flag = 0;
+                                    logger.info("Column name not matched");
+                                    errFile.gotoErrorFile(conn, txn_id, "  Error Code :CON_FILE_0001, Error Message: The header name in the file is not correct   "); /////////
+                                    conVal = 1;
+                                    break;
 //                                             }
-                                        }
-                                   }
-                                   logger.info("Total column mtch check ");
-                                   if (my_column_count == myfilelist.size()) {
-                                   } else {
-                                        failed_flag = 0;
-                                        fr.close();
-                                        if (conVal == 0) {
-                                             errFile.gotoErrorFile(conn, txn_id, "    Error Code :CON_FILE_0002, Error Message: The header in the file is not in correct order.     "); /////////
-                                             logger.info("Total column are not matched" + my_column_count);
-                                        }
-                                        break;
-                                   }
-                              } else {
-                                   errFile.gotoErrorFile(conn, txn_id, "  Error Code :CON_FILE_0011, Error Message: The Rows contain more Column than allowed in the header.    "); /////////
-                                   failed_flag = 0;
-                                   fr.close();
-                                   break;
-                              }
-                              fileLines.add(line.toString() + ",Error Code , Error Message");
-                         } else {
-                              logger.info("FILE AFTER HEADER");
-                              int j = 1;           //
-                              logger.info(" DATA " + data[j - 1]);
-                              String[] arrOfFile = line.trim().split(",", 8);
-                              String imeiV = arrOfFile[4];
-                              hash_Set.add(arrOfFile[3].trim());
-                              sourceTacList.add(arrOfFile[3].trim());
-
-                              if (arrOfFile.length != 7) {
-                                   logger.info("errfor   Wrok set.." + imeiV);
-                                   errorString += "   Error Code :CON_FILE_0011, Error Message: The Rows contain more Column than allowed in the header.";
-                                   failed_flag = 0; /// added after
-                              }
-//                              logger.debug("***");
-                              for (int v = 0; v < data.length; v++) {
-//                                   if (data[v].length() > 25) {
-                                   if (data[v].length() > 50) {
-                                        errorString += " Error Code :CON_FILE_0004, Error Message:   File Contain a Long Field  Record , ";
-                                        failed_flag = 0;
-                                   }
-                              }
-                              logger.debug("!!!");
-                              //       if (set.add(imeiV) == false) {  // nov12
-
-                              logger.debug("@@@");
-                              if (!(deviceType.contains(data[0].trim().toLowerCase()))) {
-                                   errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Type) is not as per the specifications,";
-                                   failed_flag = 0;
-                              }
-
-                              if (!(deviceType3.contains(data[1].trim().toLowerCase()))) {
-                                   errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device ID Type) is not as per the specifications,";
-                                   failed_flag = 0;
-                              }
-
-                              int minDvcTypeIdLength = 14;
-                                   if (data[1].trim().equalsIgnoreCase("esn")) {
-                                        minDvcTypeIdLength = 8;
-                                   }
-                                 if (imeiV.length() < minDvcTypeIdLength) {
-                                        logger.info(" Lenth is Less.." + imeiV);
-                                        errorString += "   Error Code :CON_FILE_0019, Error Message:   The imei_esn_meid is not as per specifications,";
-                                        failed_flag = 0; /// added after
-                                   }
-                              
-                              try {
-                                   logger.debug("###");
-                                   if (set.add(imeiV.substring(0, minDvcTypeIdLength)) == false) {
-                                        logger.info("errfor First Wrok set.." + imeiV);
-                                        errorString += "   Error Code :CON_FILE_0008, Error Message:   The record is duplicate in the file,";
-                                        failed_flag = 0; /// added after
-                                   }
-                              } catch (Exception e) {
-//                                   logger.debug("Excpt e minDvcTypeIdLength  " + e);
-                              }
-
-                              logger.debug("###");
-                              if (!(deviceType4.contains(data[2].trim().toLowerCase()))) {
-                                   errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Multiple Sim Status) is not as per the specifications,";
-                                   failed_flag = 0;
-                              }
-                              logger.debug("$$$");
-
-                              if (!(deviceType5.contains(data[6].trim().toLowerCase()))) {
-                                   errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Status) is not as per the specifications,";
-                                   failed_flag = 0;
-                              }
-                              logger.debug("^^^");
-
-                              boolean val = validateJavaDate(data[5]);
-                              if (!val) {
-                                   errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Launch Date) is not as per the specifications,";
-                                   failed_flag = 0;
-                              }
-                              logger.debug("&&&");
-
-                              for (CDRColumn cdrColumn : myfilelist) {
-                                   if (cdrColumn.graceType.equalsIgnoreCase("Mandatory")) {
-                                        logger.debug("DATA in field ... " + data[j - 1]);
-                                        if (data[j - 1].equals("") || data[j - 1] == " " || data[j - 1].equals(" ") || data[j - 1] == null) {
-                                             logger.debug("2 mandorty are their. .remove one ");
-                                             errorString += "   Error Code :CON_FILE_0007, Error Message:   The mandatory parameter does not contain the value. ,";
-                                             failed_flag = 0;
-                                        }
-                                        j++;
-                                   }
-                                   j++;
-                              }
-                              logger.info("CON_FILE_0007 All done");
-                              fileLines.add(line.toString() + errorString);
-                         }
-                         k++;
+                                }
+                            }
+                            logger.info("Total column mtch check ");
+                            if (my_column_count == myfilelist.size()) {
+                            } else {
+                                failed_flag = 0;
+                                fr.close();
+                                if (conVal == 0) {
+                                    errFile.gotoErrorFile(conn, txn_id, "    Error Code :CON_FILE_0002, Error Message: The header in the file is not in correct order.     "); /////////
+                                    logger.info("Total column are not matched" + my_column_count);
+                                }
+                                break;
+                            }
+                        } else {
+                            errFile.gotoErrorFile(conn, txn_id, "  Error Code :CON_FILE_0011, Error Message: The Rows contain more Column than allowed in the header.    "); /////////
+                            failed_flag = 0;
+                            fr.close();
+                            break;
+                        }
+                        fileLines.add(line.toString() + ",Error Code , Error Message");
                     } else {
-                         totalBlnkLine++;
+                        logger.info("FILE AFTER HEADER");
+                        int j = 1;           //
+                        logger.info(" DATA " + data[j - 1]);
+                        String[] arrOfFile = line.trim().split(",", 8);
+                        String imeiV = arrOfFile[4];
+                        hash_Set.add(arrOfFile[3].trim());
+                        sourceTacList.add(arrOfFile[3].trim());
+
+                        if (arrOfFile.length != 7) {
+                            logger.info("errfor   Wrok set.." + imeiV);
+                            errorString += "   Error Code :CON_FILE_0011, Error Message: The Rows contain more Column than allowed in the header.";
+                            failed_flag = 0; /// added after
+                        }
+//                              logger.debug("***");
+                        for (int v = 0; v < data.length; v++) {
+//                                   if (data[v].length() > 25) {
+                            if (data[v].length() > 50) {
+                                errorString += " Error Code :CON_FILE_0004, Error Message:   File Contain a Long Field  Record , ";
+                                failed_flag = 0;
+                            }
+                        }
+                        logger.debug("!!!");
+                        //       if (set.add(imeiV) == false) {  // nov12
+
+                        logger.debug("@@@");
+                        if (!(deviceType.contains(data[0].trim().toLowerCase()))) {
+                            errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Type) is not as per the specifications,";
+                            failed_flag = 0;
+                        }
+
+                        if (!(deviceType3.contains(data[1].trim().toLowerCase()))) {
+                            errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device ID Type) is not as per the specifications,";
+                            failed_flag = 0;
+                        }
+
+                        int minDvcTypeIdLength = 14;
+                        if (data[1].trim().equalsIgnoreCase("esn")) {
+                            minDvcTypeIdLength = 8;
+                        }
+                        if (imeiV.length() < minDvcTypeIdLength) {
+                            logger.info(" Lenth is Less.." + imeiV);
+                            errorString += "   Error Code :CON_FILE_0019, Error Message:   The imei_esn_meid is not as per specifications,";
+                            failed_flag = 0; /// added after
+                        }
+
+                        try {
+                            logger.debug("###");
+                            if (set.add(imeiV.substring(0, minDvcTypeIdLength)) == false) {
+                                logger.info("errfor First Wrok set.." + imeiV);
+                                errorString += "   Error Code :CON_FILE_0008, Error Message:   The record is duplicate in the file,";
+                                failed_flag = 0; /// added after
+                            }
+                        } catch (Exception e) {
+//                                   logger.debug("Excpt e minDvcTypeIdLength  " + e);
+                        }
+
+                        logger.debug("###");
+                        if (!(deviceType4.contains(data[2].trim().toLowerCase()))) {
+                            errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Multiple Sim Status) is not as per the specifications,";
+                            failed_flag = 0;
+                        }
+                        logger.debug("$$$");
+
+                        if (!(deviceType5.contains(data[6].trim().toLowerCase()))) {
+                            errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Status) is not as per the specifications,";
+                            failed_flag = 0;
+                        }
+                        logger.debug("^^^");
+
+                        boolean val = validateJavaDate(data[5]);
+                        if (!val) {
+                            errorString += "  Error Code :CON_FILE_0006, Error Message:  The field value(Device Launch Date) is not as per the specifications,";
+                            failed_flag = 0;
+                        }
+                        logger.debug("&&&");
+
+                        for (CDRColumn cdrColumn : myfilelist) {
+                            if (cdrColumn.graceType.equalsIgnoreCase("Mandatory")) {
+                                logger.debug("DATA in field ... " + data[j - 1]);
+                                if (data[j - 1].equals("") || data[j - 1] == " " || data[j - 1].equals(" ") || data[j - 1] == null) {
+                                    logger.debug("2 mandorty are their. .remove one ");
+                                    errorString += "   Error Code :CON_FILE_0007, Error Message:   The mandatory parameter does not contain the value. ,";
+                                    failed_flag = 0;
+                                }
+                                j++;
+                            }
+                            j++;
+                        }
+                        logger.info("CON_FILE_0007 All done");
+                        fileLines.add(line.toString() + errorString);
                     }
-                    logger.info("Line Number ..    " + (k + totalBlnkLine));
-               }
-               int lngth = hash_Set.size();
-               logger.info(" Total size of Serial Number ..    " + lngth);
-               logger.info(" Total lines with data    " + k);
-               logger.info("Total Blank Lines in File " + totalBlnkLine);
-               if ((k - 1) != fileCnt) {
-                    logger.info("  Quantity  provided doesnot matched with Lines in File  but Error will not see  till now if earlier Error happened ");
-                    if (failed_flag != 0) {
-                         logger.info("  Quantity  provided doesnot matched with Data  in File  ");
-                         //   errFile.gotoErrorFile(txn_id, "  Error Code :CON_FILE_0010, Error Message:  IMEI/ESN/MEID Quantity  does not match with the  count of data records in the uploaded file   ");
-                         fileLines.add(" Error Code :CON_FILE_0012, Error Message:  IMEI/ESN/MEID Quantity  does not match with the  count of data records in the uploaded file   ");
-                         failed_flag = 0;
+                    k++;
+                } else {
+                    totalBlnkLine++;
+                }
+                logger.info("Line Number ..    " + (k + totalBlnkLine));
+            }
+            int lngth = hash_Set.size();
+            logger.info(" Total size of Serial Number ..    " + lngth);
+            logger.info(" Total lines with data    " + k);
+            logger.info("Total Blank Lines in File " + totalBlnkLine);
+            if ((k - 1) != fileCnt) {
+                logger.info("  Quantity  provided doesnot matched with Lines in File  but Error will not see  till now if earlier Error happened ");
+                if (failed_flag != 0) {
+                    logger.info("  Quantity  provided doesnot matched with Data  in File  ");
+                    //   errFile.gotoErrorFile(txn_id, "  Error Code :CON_FILE_0010, Error Message:  IMEI/ESN/MEID Quantity  does not match with the  count of data records in the uploaded file   ");
+                    fileLines.add(" Error Code :CON_FILE_0012, Error Message:  IMEI/ESN/MEID Quantity  does not match with the  count of data records in the uploaded file   ");
+                    failed_flag = 0;
+                }
+            }
+            if (lngth != deviceQuantity) {
+                logger.debug("   Devce Qntity   method started ");
+                if (failed_flag != 0) {
+                    logger.info(" Device Quantity   doesnot matched with unique serial number  in File  ");
+                    //  errFile.gotoErrorFile(txn_id, "Error Code :CON_FILE_0011, Error Message: Device Quantity does not match with the  count of unique serial number in the uploaded file  ");
+                    fileLines.add("Error Code :CON_FILE_0013, Error Message: Device Quantity does not match with the  count of unique serial number in the uploaded file  ");
+                    failed_flag = 0;
+                }
+            }
+
+            try {
+                if (SNofDeviceValue.equalsIgnoreCase("Mandatory")) {
+
+                    Map<String, Integer> hm = new HashMap<String, Integer>();
+                    for (String ii : sourceTacList) {
+                        Integer j = hm.get(ii);
+                        hm.put(ii, (j == null) ? 1 : j + 1);
                     }
-               }
-               if (lngth != deviceQuantity) {
-                    logger.debug("   Devce Qntity   method started ");
-                    if (failed_flag != 0) {
-                         logger.info(" Device Quantity   doesnot matched with unique serial number  in File  ");
-                         //  errFile.gotoErrorFile(txn_id, "Error Code :CON_FILE_0011, Error Message: Device Quantity does not match with the  count of unique serial number in the uploaded file  ");
-                         fileLines.add("Error Code :CON_FILE_0013, Error Message: Device Quantity does not match with the  count of unique serial number in the uploaded file  ");
-                         failed_flag = 0;
-                    }
-               }
-
-               try {
-                    if (SNofDeviceValue.equalsIgnoreCase("Mandatory")) {
-
-                         Map<String, Integer> hm = new HashMap<String, Integer>();
-                         for (String ii : sourceTacList) {
-                              Integer j = hm.get(ii);
-                              hm.put(ii, (j == null) ? 1 : j + 1);
-                         }
-                         for (Map.Entry<String, Integer> val : hm.entrySet()) {
-                              // System.out.println("Element " + val.getKey() + " " + "occurs" + ": " + val.getValue() + " times");
-                              if (val.getValue() > 4) {
-                                   logger.info("Error Code :CON_FILE_0014, Error Message: Serial number " + val.getKey() + "  is assigned to " + val.getValue() + "  imeis. Max(4 imeis to be linked)  ");
-                                   fileLines.add("Error Code :CON_FILE_0014, Error Message: Serial number " + val.getKey() + "  is assigned to " + val.getValue() + "  imeis. Max(4 imeis to be linked)  ");
-                                   failed_flag = 0;
-                              }
-                         }
-
+                    for (Map.Entry<String, Integer> val : hm.entrySet()) {
+                        // System.out.println("Element " + val.getKey() + " " + "occurs" + ": " + val.getValue() + " times");
+                        if (val.getValue() > 4) {
+                            logger.info("Error Code :CON_FILE_0014, Error Message: Serial number " + val.getKey() + "  is assigned to " + val.getValue() + "  imeis. Max(4 imeis to be linked)  ");
+                            fileLines.add("Error Code :CON_FILE_0014, Error Message: Serial number " + val.getKey() + "  is assigned to " + val.getValue() + "  imeis. Max(4 imeis to be linked)  ");
+                            failed_flag = 0;
+                        }
                     }
 
-               } catch (Exception e) {
-                    logger.info("Mandatory  " + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() );
-               }
+                }
 
-               br.close();
-               k = 0;
-               if (failed_flag == 1) {
-                    File errorfile = new File(error_file_path);
-                    if (errorfile.exists()) {     // in case of no error   ,,  file is deleted
-                         logger.info("Error file already esists ");
-                         if (errorfile.delete()) {
-                              logger.info("File deleted successfully");
-                         } else {
-                              logger.debug("Failed to delete the file");
-                         }
+            } catch (Exception e) {
+                logger.info("Mandatory  " + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber());
+            }
+
+            br.close();
+            k = 0;
+            if (failed_flag == 1) {
+                File errorfile = new File(error_file_path);
+                if (errorfile.exists()) {     // in case of no error   ,,  file is deleted
+                    logger.info("Error file already esists ");
+                    if (errorfile.delete()) {
+                        logger.info("File deleted successfully");
+                    } else {
+                        logger.debug("Failed to delete the file");
                     }
-                    logger.info("Uploading file"); // uploading data to db ..
-                    file = new File(filePath);
-                    fr = new FileReader(file);
-                    br = new BufferedReader(fr);
-                    while ((line = br.readLine()) != null) {
-                         data = line.split(",", -1);
-                         if (line.replace(",", " ").trim().length() > 0) {
-                              if (k == 0) {
-                                   if (data.length == myfilelist.size()) {
-                                        logger.info("Configured Column name and File Headers are matched");
-                                        int my_column_count = 0;
-                                        for (CDRColumn cdrColumn : myfilelist) {
-                                            if(cdrColumn.columName.equals("IMEI")){cdrColumn.columName = "IMEIESNMEID";}
-                                             query = query + cdrColumn.columName + ",";
-                                             values = values + "?,";
-                                             my_column_count++;
-                                        }
-                                        logger.info( " Inner Query : " + query);
-                                                
-                                        if (my_column_count == myfilelist.size()) {
-                                             query = query + "txn_id" + "," + "file_name" + "," + "feature_type" + ",created_on ,modified_on    ";   // removin comma may14
-                                             values = values + "?,?,?,?,?  ";
-                                             query = query.substring(0, query.length() - 1) + ") "
-                                                     + values.substring(0, values.length() - 1) + ")";
-                                             ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-                                             logger.info("complete query is [" + query + "]");
-                                        } else {
-                                             fr.close();
-                                             logger.info("Total column are not matched" + my_column_count);
-                                             break;
-                                        }
-                                   }
+                }
+                logger.info("Uploading file"); // uploading data to db ..
+                file = new File(filePath);
+                fr = new FileReader(file);
+                br = new BufferedReader(fr);
+                while ((line = br.readLine()) != null) {
+                    data = line.split(",", -1);
+                    if (line.replace(",", " ").trim().length() > 0) {
+                        if (k == 0) {
+                            if (data.length == myfilelist.size()) {
+                                logger.info("Configured Column name and File Headers are matched");
+                                int my_column_count = 0;
+                                for (CDRColumn cdrColumn : myfilelist) {
+                                    if (cdrColumn.columName.equals("IMEI")) {
+                                        cdrColumn.columName = "IMEIESNMEID";
+                                    }
+                                    query = query + cdrColumn.columName + ",";
+                                    values = values + "?,";
+                                    my_column_count++;
+                                }
+                                logger.info(" Inner Query : " + query);
 
-                              } else {
-                                   int j = 1;
-                                   if (failed_flag == 1) {
-                                        if (data[0].equals("") && data[1].equals("") && data[2].equals("") && data[3].equals("")
-                                                && data[4].equals("") && data[5].equals("") && data[6].equals("")) {
-                                             logger.info("err..   BLNK FILE   ,, just skip it");
-                                             continue;
-                                        }
-                                        String imeiV = data[4].trim();
-                                        logger.info("imeiV;;" + imeiV);
-                                        if (aList.contains(imeiV)) {
-                                             logger.debug("err. for list,,." + imeiV);
-                                        } else {
-                                             aList.add(imeiV);
-                                             for (; j <= data.length; j++) {
-                                                  logger.debug("DATA at setString " + data[j - 1].trim());
-                                                  ps.setString(j, data[j - 1].trim());
-                                             }
-                                             ps.setString(j, txn_id);
-                                             ps.setString(j + 1, fileName);
-                                             ps.setString(j + 2, main_type);
-                                             ps.setString(j + 3, stringDate);
-                                             ps.setString(j + 4, stringDate);
-                                             logger.debug(fileName + main_type + stringDate + txn_id);
-                                             ps.addBatch();
-                                             pass_my_batch++;
+                                if (my_column_count == myfilelist.size()) {
+                                    query = query + "txn_id" + "," + "file_name" + "," + "feature_type" + ",created_on ,modified_on    ";   // removin comma may14
+                                    values = values + "?,?,?,?,?  ";
+                                    query = query.substring(0, query.length() - 1) + ") "
+                                            + values.substring(0, values.length() - 1) + ")";
+                                    ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+                                    logger.info("complete query is [" + query + "]");
+                                } else {
+                                    fr.close();
+                                    logger.info("Total column are not matched" + my_column_count);
+                                    break;
+                                }
+                            }
 
-                                        }
-                                   }
-                              }
-                              k++;
-                              logger.info("counting :  " + k);
-                              if (pass_my_batch == my_batch_count) {
-                                   logger.debug("Executing Pass Batch File");
-                                   ps.executeBatch();
+                        } else {
+                            int j = 1;
+                            if (failed_flag == 1) {
+                                if (data[0].equals("") && data[1].equals("") && data[2].equals("") && data[3].equals("")
+                                        && data[4].equals("") && data[5].equals("") && data[6].equals("")) {
+                                    logger.info("err..   BLNK FILE   ,, just skip it");
+                                    continue;
+                                }
+                                String imeiV = data[4].trim();
+                                logger.info("imeiV;;" + imeiV);
+                                if (aList.contains(imeiV)) {
+                                    logger.debug("err. for list,,." + imeiV);
+                                } else {
+                                    aList.add(imeiV);
+                                    for (; j <= data.length; j++) {
+                                        logger.debug("DATA at setString " + data[j - 1].trim());
+                                        ps.setString(j, data[j - 1].trim());
+                                    }
+                                    ps.setString(j, txn_id);
+                                    ps.setString(j + 1, fileName);
+                                    ps.setString(j + 2, main_type);
+                                    ps.setString(j + 3, stringDate);
+                                    ps.setString(j + 4, stringDate);
+                                    logger.debug(fileName + main_type + stringDate + txn_id);
+                                    ps.addBatch();
+                                    pass_my_batch++;
+
+                                }
+                            }
+                        }
+                        k++;
+                        logger.info("counting :  " + k);
+                        if (pass_my_batch == my_batch_count) {
+                            logger.debug("Executing Pass Batch File");
+                            ps.executeBatch();
 //                            conn.commit();
-                                   pass_my_batch = 0;
-                              }
-                         }
-                    }      // While close 
+                            pass_my_batch = 0;
+                        }
+                    }
+                }      // While close
 
-                    br.close();
-                    logger.debug("Batch started");
-                    if (ps != null) {
-                         ps.executeBatch();
-                    }
-                    if (fr != null) {
-                         fr.close();
-                    }
-                    logger.debug("Batch ended");
-                    rs = ps.getGeneratedKeys();
-                    if (rs != null) {
-                         rs.close();
-                    }
-                    logger.debug("Batch endsed");
-                    if (ps != null) {
-                         ps.clearParameters();
-                         ps.close();
-                    }
+                br.close();
+                logger.debug("Batch started");
+                if (ps != null) {
+                    ps.executeBatch();
+                }
+                if (fr != null) {
+                    fr.close();
+                }
+                logger.debug("Batch ended");
+                rs = ps.getGeneratedKeys();
+                if (rs != null) {
+                    rs.close();
+                }
+                logger.debug("Batch endsed");
+                if (ps != null) {
+                    ps.clearParameters();
+                    ps.close();
+                }
 //                    if (main_type.equalsIgnoreCase("Consignment")) {
 //                         ceirfunction.UpdateStatus ViaApi(conn, txn_id, 0, main_type);
 //                    } else {
@@ -807,436 +811,438 @@ public class HexFileReader {
 //                         logger.info("mgmt Db  1  done");
 //                    }
 
-                    ceirfunction.updateFeatureFileStatus(conn, txn_id, 2, main_type, subfeature); // update web_action_db 
-                    logger.debug("web_action_db 2 done");
+                ceirfunction.updateFeatureFileStatus(conn, txn_id, 2, main_type, subfeature); // update web_action_db
+                logger.debug("web_action_db 2 done");
 //                    conn.commit();
-               } else {
-                    errFile.gotoErrorFilewithList(errorFilePath, txn_id, fileLines);
+            } else {
+                errFile.gotoErrorFilewithList(errorFilePath, txn_id, fileLines);
 //                    if (main_type.equalsIgnoreCase("Consignment")) {
-                    ceirfunction.UpdateStatusViaApi(conn, txn_id, 1, main_type);
+                ceirfunction.UpdateStatusViaApi(conn, txn_id, 1, main_type);
 //                    } else {
-                    ceirfunction.updateFeatureManagementStatus(conn, txn_id, 2, management_table, main_type);
+                ceirfunction.updateFeatureManagementStatus(conn, txn_id, 2, management_table, main_type);
 //                    }
-                    ceirfunction.updateFeatureFileStatus(conn, txn_id, 4, main_type, subfeature); // update web_action_db  
-               }
-          } catch (Exception e) {
-               logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               e.printStackTrace();
-               try {
-                    if (conn != null) {
-                         conn.rollback();
+                ceirfunction.updateFeatureFileStatus(conn, txn_id, 4, main_type, subfeature); // update web_action_db
+            }
+        } catch (Exception e) {
+            logger.error("" + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            e.printStackTrace();
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+                new ErrorFileGenrator().gotoErrorFile(conn, txn_id, "Something went Wrong. Please Contact to Ceir Admin.  ");
+                new CEIRFeatureFileFunctions().UpdateStatusViaApi(conn, txn_id, 1, main_type);       //1 for reject
+                new CEIRFeatureFileFunctions().updateFeatureFileStatus(conn, txn_id, 5, main_type, subfeature); // update web_action_db
+                conn.commit();
+            } catch (Exception ex) {
+            }
+            result = null;
+        } finally {
+            try {
+                logger.debug("in Finally Block");
+                if (Objects.nonNull(conn)) {
+                    if (Objects.nonNull(rs)) {
+                        rs.close();
                     }
-                    new ErrorFileGenrator().gotoErrorFile(conn, txn_id, "Something went Wrong. Please Contact to Ceir Admin.  ");
-                    new CEIRFeatureFileFunctions().UpdateStatusViaApi(conn, txn_id, 1, main_type);       //1 for reject
-                    new CEIRFeatureFileFunctions().updateFeatureFileStatus(conn, txn_id, 5, main_type, subfeature); // update web_action_db    
-                    conn.commit();
-               } catch (Exception ex) {
-               }
-               result = null;
-          } finally {
-               try {
-                    logger.debug("in Finally Block");
-                    if (Objects.nonNull(conn)) {
-                         if (Objects.nonNull(rs)) {
-                              rs.close();
-                         }
 //                         logger.debug("1212");
 //                         if (Objects.nonNull(ps)) {
 //                              ps.clearParameters();
 //                              ps.close();
 //                         }
-                         logger.debug("Committed Conntion ");
-                         conn.commit();
+                    logger.debug("Committed Conntion ");
+                    conn.commit();
 
+                }
+                if (fis != null) {
+                    fis.close();
+                }
+                if (dis != null) {
+                    dis.close();
+                }
+                if (fw != null) {
+                    fw.close();
+                }
+            } catch (Exception e) {
+                logger.error("._." + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
+            }
+            query = null;
+            values = null;
+            data = null;
+            file = null;
+
+        }
+        return result;
+    }
+
+    public String[] readConvertedCSVFileBack(Connection conn, String fileName, String filePath, String repName) {
+        String errorFilePath = filePath + fileName + ".error";
+        Boolean inTrkStatus = false;
+        String cdrCount = null;
+        String answerTime = null;
+        String endTime = null;
+        String inTrkName = null;
+        String outTrkName = null;
+        String inTrkNo = null;
+        String outTrkNo = null;
+        String partId = null;
+        String billId = null;
+        int sCount = 0;
+        int fCount = 0;
+        int startId = 0;
+        int endId = 0;
+        int endRow = 0;
+        int i = 0;
+        int limit = 10000;
+        int startRow = 0;
+        int rowInserted = 0;
+        String query = null;
+        String values = "values(";
+        // Connection conn = null;
+        PreparedStatement ps = null;
+        PreparedStatement temPS = null;
+        ResultSet rs = null;
+        String cdrStartTime = null;
+        String cdrEndTime = null;
+        String cdrTime = null;
+        String changeCDRTime = null;
+        String fieldName = null;
+        File file = null;
+        String line = null;
+        String str = null;
+        String answerId = null;
+        String startTime = null;
+        String preCDRTime = null;
+        String[] data = null;
+        BufferedReader br = null;
+        FileWriter fw = null;
+        FileReader fr = null;
+        String[] result = null;
+        Date date = null;
+        SimpleDateFormat actF = null;
+        SimpleDateFormat sdf = null;
+        DataInputStream dis = null;
+        FileInputStream fis = null;
+        ArrayList<String> billIds = null;
+        List<String> fieldList = null;
+        HashMap<String, int[]> hm = new HashMap<String, int[]>();
+        int fieldValue = 0;
+        String recordtype = null;
+        String imei = null;
+        String imsi = null;
+        String msisdn = null;
+        String systemtype = null;
+        logger.info("in file reader");
+        try {
+            fieldList = new ArrayList<String>();
+            logger.info("NOTEEEEEEEEE  (readConvertedCSVFileBack)>>>>>>>>>>  main_type, txn_id  is hard coded   but usertype_name is not used ****************************");
+            String main_type = "";
+            String txn_id = "";
+            String usertype_name = "";
+
+            // String usertype_name = getUserTypeName(conn, main_type, txn_id); // get
+            // usertypr .. importor/ ditributer /
+            ArrayList filelist = getCDRFields(conn, "CDR", usertype_name);
+            logger.info("array list " + filelist.toString());
+            fieldList = Arrays.asList(fields);
+
+            date = new Date();
+            actF = new SimpleDateFormat("yyyyMMddHHmmssSS"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
+            sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            // fw = new FileWriter(errorFilePath);
+            file = new File(filePath);
+            fr = new FileReader(file);
+            br = new BufferedReader(fr);
+            // startTime = sdf.format(Calendar.getInstance().getTime());
+            // startRow = new com.functionapps.db.Query().getStartIndexFromTable(conn,
+            // repName);
+            /**
+             * **************Insert Query and prepared statement
+             * start**************
+             */
+            query = "insert into " + repName + "(";
+            for (String field : fields) {
+                query = query + field + ",";
+                values = values + "?,";
+            }
+            query = query.substring(0, query.length() - 1) + ") " + values.substring(0, values.length() - 1) + ")";
+            logger.info("query is " + query);
+
+            // conn = new com.functionapps.db.MySQLConnection().getConnection();
+            ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            // temPS = conn.prepareStatement( "insert into
+            // zte_billid_temp(partId,billId,answerTime) values(?,?,?)",
+            // Statement.RETURN_GENERATED_KEYS );
+            /**
+             * **************Insert Query and prepared statement
+             * ends**************
+             */
+            hm = zte.getfieldSet();
+            billIds = new ArrayList<String>();
+
+            // preCDRTime = this.getPreviousTimeFromRaw(repName, conn);
+            while ((line = br.readLine()) != null) {
+                data = line.split(",", -1);
+                recordtype = data[0];
+                imei = data[1];
+                imsi = data[2];
+                msisdn = data[3];
+                systemtype = data[4];
+
+                if (i == 0) {
+                    // query = "insert into "+repName+"(";
+                    // for( String field : fields ){
+                    // query = query + field + ",";
+                    // values = values + "?,";
+                    //
+                    // }
+                    // query = query.substring( 0, query.length() - 1 )+") "+values.substring( 0,
+                    // values.length() - 1 )+")";
+                } else {
+                    ps.setString(1, recordtype);
+                    ps.setString(2, imei);
+                    ps.setString(3, imsi);
+                    ps.setString(4, msisdn);
+                    ps.setString(5, systemtype);
+                    ps.addBatch();
+                }
+                i++;
+            }
+            logger.info("cdrStartTIme [" + cdrStartTime + "], cdrEndTime [" + cdrEndTime + "]");
+            ps.executeBatch();
+            if (fr != null) {
+                fr.close();
+            }
+            rowInserted = ps.getUpdateCount();
+            rs = ps.getGeneratedKeys();
+            while (rs.next()) {
+                endRow = (int) rs.getLong(1);
+                rowInserted = endRow - startRow;
+            }
+
+            if (rs != null) {
+                rs.close();
+            }
+            // logger.info("cdr start row is ["+startRow+"] and end row is ["+endRow+"]");
+            // this.updateCDRWithPartIdThree( conn, billIds, repName, cdrStartTime,
+            // startRow, endRow );
+            // startId = new Query().getStartIndexFromTable(conn,"zte_billid_temp");
+            // temPS.executeBatch();
+            // rs = temPS.getGeneratedKeys();
+            // while( rs.next() ){
+            // endId = (int)rs.getLong(1);
+            // }
+            // if( endId != 0 ){
+            // this.insertSlotStartAndEndSnoId( conn, cdrStartTime, startId, endId);
+            // }
+            // if( temPS != null ){
+            // temPS.clearParameters();
+            // }
+
+            new com.glocks.files.FileList().moveFile(fileName, repName, "", "");
+
+            // cdrCount = String.valueOf(i+1);
+            if (cdrCount != null && cdrStartTime != null && cdrEndTime != null) {
+                // logger.info("CDR start time ["+cdrStartTime+"] and CDR end time
+                // ["+cdrEndTime+"]");
+                // result = new String[]{ cdrCount, cdrStartTime, cdrEndTime,
+                // String.valueOf(rowInserted), this.getTableSize( conn,
+                // repName),String.valueOf(sCount),String.valueOf(fCount) };
+            } else {
+                result = new String[]{"0", "null", "null", "0", this.getTableSize(conn, repName), "0", "0"};
+            }
+            conn.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("e " + e);
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (Exception ex) {
+                logger.error("e " + ex);
+            }
+            result = null;
+            // result = new String[]{ "0", "null", "null", "0", this.getTableSize( conn,
+            // repName),"0","0" };
+        } finally {
+            try {
+                if (conn != null) {
+                    if (rs != null) {
+                        rs.close();
                     }
-                    if (fis != null) {
-                         fis.close();
+                    if (ps != null) {
+                        ps.clearParameters();
+                        ps.close();
                     }
-                    if (dis != null) {
-                         dis.close();
+                    if (temPS != null) {
+                        temPS.clearParameters();
+                        temPS.close();
                     }
-                    if (fw != null) {
-                         fw.close();
+                    // c onn.close();
+                }
+                if (fis != null) {
+                    fis.close();
+                }
+                if (dis != null) {
+                    dis.close();
+                }
+                if (fw != null) {
+                    fw.close();
+                }
+            } catch (Exception ex) {
+            }
+            // errorFilePath = null;
+            query = null;
+            cdrCount = null;
+            answerTime = null;
+            endTime = null;
+            inTrkName = null;
+            outTrkName = null;
+            inTrkNo = null;
+            outTrkNo = null;
+            partId = null;
+            billId = null;
+            values = null;
+            cdrStartTime = null;
+            cdrEndTime = null;
+            data = null;
+            fieldName = null;
+            file = null;
+            billIds = null;
+            hm = null;
+        }
+        return result;
+    }
+
+    ArrayList getCDRFields(Connection conn, String feature, String usertype_name) {
+        String query = null;
+        int rs0Count = 0;
+
+        ArrayList columnDetails = new ArrayList<CDRColumn>();
+        String period = checkGraceStatus(conn); // grace/postgrace
+        String qry = ""; //
+        try {
+            Statement stmto = conn.createStatement();
+
+            ResultSet rs0 = stmto.executeQuery("select count(*)  from static_rule_engine_mapping where feature='"
+                    + feature + "' and   user_type =  '" + usertype_name + "'  order by id asc ");
+            while (rs0.next()) {
+                rs0Count = rs0.getInt(1);
+            }
+        } catch (Exception e) {
+            logger.error("e " + e);
+        }
+        logger.info("  ...... .." + rs0Count);
+
+        if (rs0Count == 0) {
+            qry = "  and user_type =  'default'  ";
+        } else {
+
+            qry = "  and user_type =  '" + usertype_name + "'  ";
+        }
+
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            query = "select * from static_rule_engine_mapping where feature='" + feature + "'   " + qry + "   order by id asc    "; /// usertype
+
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            logger.info("Query is for static rule_engine_mapping (get CDRFields) ..." + query);
+            while (rs.next()) {
+                CDRColumn cdrColumn = new CDRColumn(rs.getString("name"), rs.getString(period + "_type"), rs.getString("post_grace_type"));
+                columnDetails.add(cdrColumn);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            logger.error("e " + ex);
+        } finally {
+            if (conn != null) {
+                try {
+                    if (rs != null) {
+                        rs.close();
                     }
-               } catch (Exception e) {
-                    logger.error("._." + l.getClassName() + "/" + l.getMethodName() + ":" + l.getLineNumber() + e);
-               }
-               query = null;
-               values = null;
-               data = null;
-               file = null;
-
-          }
-          return result;
-     }
-
-     public String[] readConvertedCSVFileBack(Connection conn, String fileName, String filePath, String repName) {
-          String errorFilePath = filePath + fileName + ".error";
-          Boolean inTrkStatus = false;
-          String cdrCount = null;
-          String answerTime = null;
-          String endTime = null;
-          String inTrkName = null;
-          String outTrkName = null;
-          String inTrkNo = null;
-          String outTrkNo = null;
-          String partId = null;
-          String billId = null;
-          int sCount = 0;
-          int fCount = 0;
-          int startId = 0;
-          int endId = 0;
-          int endRow = 0;
-          int i = 0;
-          int limit = 10000;
-          int startRow = 0;
-          int rowInserted = 0;
-          String query = null;
-          String values = "values(";
-          // Connection conn = null;
-          PreparedStatement ps = null;
-          PreparedStatement temPS = null;
-          ResultSet rs = null;
-          String cdrStartTime = null;
-          String cdrEndTime = null;
-          String cdrTime = null;
-          String changeCDRTime = null;
-          String fieldName = null;
-          File file = null;
-          String line = null;
-          String str = null;
-          String answerId = null;
-          String startTime = null;
-          String preCDRTime = null;
-          String[] data = null;
-          BufferedReader br = null;
-          FileWriter fw = null;
-          FileReader fr = null;
-          String[] result = null;
-          Date date = null;
-          SimpleDateFormat actF = null;
-          SimpleDateFormat sdf = null;
-          DataInputStream dis = null;
-          FileInputStream fis = null;
-          ArrayList<String> billIds = null;
-          List<String> fieldList = null;
-          HashMap<String, int[]> hm = new HashMap<String, int[]>();
-          int fieldValue = 0;
-          String recordtype = null;
-          String imei = null;
-          String imsi = null;
-          String msisdn = null;
-          String systemtype = null;
-          logger.info("in file reader");
-          try {
-               fieldList = new ArrayList<String>();
-               logger.info("NOTEEEEEEEEE  (readConvertedCSVFileBack)>>>>>>>>>>  main_type, txn_id  is hard coded   but usertype_name is not used ****************************");
-               String main_type = "";
-               String txn_id = "";
-               String usertype_name = "";
-
-               // String usertype_name = getUserTypeName(conn, main_type, txn_id); // get
-               // usertypr .. importor/ ditributer /
-               ArrayList filelist = getCDRFields(conn, "CDR", usertype_name);
-               logger.info("array list " + filelist.toString());
-               fieldList = Arrays.asList(fields);
-
-               date = new Date();
-               actF = new SimpleDateFormat("yyyyMMddHHmmssSS"); // actF = new SimpleDateFormat("yyyyMMddHHmmss");
-               sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-               // fw = new FileWriter(errorFilePath);
-               file = new File(filePath);
-               fr = new FileReader(file);
-               br = new BufferedReader(fr);
-               // startTime = sdf.format(Calendar.getInstance().getTime());
-               // startRow = new com.functionapps.db.Query().getStartIndexFromTable(conn,
-               // repName);
-               /**
-                * **************Insert Query and prepared statement start**************
-                */
-               query = "insert into " + repName + "(";
-               for (String field : fields) {
-                    query = query + field + ",";
-                    values = values + "?,";
-               }
-               query = query.substring(0, query.length() - 1) + ") " + values.substring(0, values.length() - 1) + ")";
-               logger.info("query is " + query);
-
-               // conn = new com.functionapps.db.MySQLConnection().getConnection();
-               ps = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-               // temPS = conn.prepareStatement( "insert into
-               // zte_billid_temp(partId,billId,answerTime) values(?,?,?)",
-               // Statement.RETURN_GENERATED_KEYS );
-               /**
-                * **************Insert Query and prepared statement ends**************
-                */
-               hm = zte.getfieldSet();
-               billIds = new ArrayList<String>();
-
-               // preCDRTime = this.getPreviousTimeFromRaw(repName, conn);
-               while ((line = br.readLine()) != null) {
-                    data = line.split(",", -1);
-                    recordtype = data[0];
-                    imei = data[1];
-                    imsi = data[2];
-                    msisdn = data[3];
-                    systemtype = data[4];
-
-                    if (i == 0) {
-                         // query = "insert into "+repName+"(";
-                         // for( String field : fields ){
-                         // query = query + field + ",";
-                         // values = values + "?,";
-                         //
-                         // }
-                         // query = query.substring( 0, query.length() - 1 )+") "+values.substring( 0,
-                         // values.length() - 1 )+")";
-                    } else {
-                         ps.setString(1, recordtype);
-                         ps.setString(2, imei);
-                         ps.setString(3, imsi);
-                         ps.setString(4, msisdn);
-                         ps.setString(5, systemtype);
-                         ps.addBatch();
+                    if (stmt != null) {
+                        stmt.close();
                     }
-                    i++;
-               }
-               logger.info("cdrStartTIme [" + cdrStartTime + "], cdrEndTime [" + cdrEndTime + "]");
-               ps.executeBatch();
-               if (fr != null) {
-                    fr.close();
-               }
-               rowInserted = ps.getUpdateCount();
-               rs = ps.getGeneratedKeys();
-               while (rs.next()) {
-                    endRow = (int) rs.getLong(1);
-                    rowInserted = endRow - startRow;
-               }
+                } catch (Exception e) {
+                    logger.error("e " + e);
+                }
+            }
+        }
 
-               if (rs != null) {
-                    rs.close();
-               }
-               // logger.info("cdr start row is ["+startRow+"] and end row is ["+endRow+"]");
-               // this.updateCDRWithPartIdThree( conn, billIds, repName, cdrStartTime,
-               // startRow, endRow );
-               // startId = new Query().getStartIndexFromTable(conn,"zte_billid_temp");
-               // temPS.executeBatch();
-               // rs = temPS.getGeneratedKeys();
-               // while( rs.next() ){
-               // endId = (int)rs.getLong(1);
-               // }
-               // if( endId != 0 ){
-               // this.insertSlotStartAndEndSnoId( conn, cdrStartTime, startId, endId);
-               // }
-               // if( temPS != null ){
-               // temPS.clearParameters();
-               // }
+        return columnDetails;
+    }
 
-               new com.glocks.files.FileList().moveFile(fileName, repName, "", "");
+    public String checkGraceStatus(Connection conn) {
 
-               // cdrCount = String.valueOf(i+1);
-               if (cdrCount != null && cdrStartTime != null && cdrEndTime != null) {
-                    // logger.info("CDR start time ["+cdrStartTime+"] and CDR end time
-                    // ["+cdrEndTime+"]");
-                    // result = new String[]{ cdrCount, cdrStartTime, cdrEndTime,
-                    // String.valueOf(rowInserted), this.getTableSize( conn,
-                    // repName),String.valueOf(sCount),String.valueOf(fCount) };
-               } else {
-                    result = new String[]{"0", "null", "null", "0", this.getTableSize(conn, repName), "0", "0"};
-               }
-               conn.commit();
-          } catch (Exception e) {
-               e.printStackTrace();
-               logger.error("e " + e);
-               try {
-                    if (conn != null) {
-                         conn.rollback();
+        // static Logger logger = LogManager.getLogger(HexFileReader.class);
+        // logger = LogManager.getLogger(HexFileReader.class);
+        String period = "";
+        String query = null;
+        ResultSet rs1 = null;
+        Statement stmt = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date currentDate = new Date();
+        Date graceDate = null;
+        try {
+            query = "select value from system_configuration_db where tag='GRACE_PERIOD_END_DATE'";
+            logger.info("Query is " + query);
+            stmt = conn.createStatement();
+            rs1 = stmt.executeQuery(query);
+            while (rs1.next()) {
+                graceDate = sdf.parse(rs1.getString("value"));
+                if (currentDate.compareTo(graceDate) > 0) {
+                    period = "post_grace";
+                } else {
+                    period = "grace";
+                }
+            }
+            logger.info(" Current Period is " + period);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            try {
+                stmt.close();
+                rs1.close();
+            } catch (SQLException e) {
+
+            }
+
+        }
+        return period;
+    }
+
+    public String getPreviousTimeFromRaw(String repName, Connection conn) {
+        String lastDate = null;
+        String query = null;
+        ResultSet rs = null;
+        Statement stmt = null;
+        try {
+            query = "select Changed_date from " + repName + " where sno=(select MAX(sno) from " + repName + ")";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            while (rs.next()) {
+                lastDate = rs.getString("Changed_date");
+            }
+        } catch (Exception ex) {
+            lastDate = null;
+            ex.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    if (rs != null) {
+                        rs.close();
                     }
-               } catch (Exception ex) {
-                    logger.error("e " + ex);
-               }
-               result = null;
-               // result = new String[]{ "0", "null", "null", "0", this.getTableSize( conn,
-               // repName),"0","0" };
-          } finally {
-               try {
-                    if (conn != null) {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (ps != null) {
-                              ps.clearParameters();
-                              ps.close();
-                         }
-                         if (temPS != null) {
-                              temPS.clearParameters();
-                              temPS.close();
-                         }
-                         // c onn.close();
+                    if (stmt != null) {
+                        stmt.close();
                     }
-                    if (fis != null) {
-                         fis.close();
-                    }
-                    if (dis != null) {
-                         dis.close();
-                    }
-                    if (fw != null) {
-                         fw.close();
-                    }
-               } catch (Exception ex) {
-               }
-               // errorFilePath = null;
-               query = null;
-               cdrCount = null;
-               answerTime = null;
-               endTime = null;
-               inTrkName = null;
-               outTrkName = null;
-               inTrkNo = null;
-               outTrkNo = null;
-               partId = null;
-               billId = null;
-               values = null;
-               cdrStartTime = null;
-               cdrEndTime = null;
-               data = null;
-               fieldName = null;
-               file = null;
-               billIds = null;
-               hm = null;
-          }
-          return result;
-     }
-
-     ArrayList getCDRFields(Connection conn, String feature, String usertype_name) {
-          String query = null;
-          int rs0Count = 0;
-
-          ArrayList columnDetails = new ArrayList<CDRColumn>();
-          String period = checkGraceStatus(conn); // grace/postgrace
-          String qry = ""; //
-          try {
-               Statement stmto = conn.createStatement();
-
-               ResultSet rs0 = stmto.executeQuery("select count(*)  from static_rule_engine_mapping where feature='"
-                       + feature + "' and   user_type =  '" + usertype_name + "'  order by id asc ");
-               while (rs0.next()) {
-                    rs0Count = rs0.getInt(1);
-               }
-          } catch (Exception e) {
-               logger.error("e " + e);
-          }
-          logger.info("  ...... .." + rs0Count);
-
-          if (rs0Count == 0) {
-               qry = "  and user_type =  'default'  ";
-          } else {
-
-               qry = "  and user_type =  '" + usertype_name + "'  ";
-          }
-
-          Statement stmt = null;
-          ResultSet rs = null;
-          try {
-               query = "select * from static_rule_engine_mapping where feature='" + feature + "'   " + qry + "   order by id asc    "; /// usertype
-
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(query);
-               logger.info("Query is for static rule_engine_mapping (get CDRFields) ..." + query);
-               while (rs.next()) {
-                    CDRColumn cdrColumn = new CDRColumn(rs.getString("name"), rs.getString(period + "_type"), rs.getString("post_grace_type"));
-                    columnDetails.add(cdrColumn);
-               }
-          } catch (Exception ex) {
-               ex.printStackTrace();
-               logger.error("e " + ex);
-          } finally {
-               if (conn != null) {
-                    try {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (stmt != null) {
-                              stmt.close();
-                         }
-                    } catch (Exception e) {
-                         logger.error("e " + e);
-                    }
-               }
-          }
-
-          return columnDetails;
-     }
-
-     public String checkGraceStatus(Connection conn) {
-
-          // static Logger logger = LogManager.getLogger(HexFileReader.class);
-          // logger = LogManager.getLogger(HexFileReader.class);
-          String period = "";
-          String query = null;
-          ResultSet rs1 = null;
-          Statement stmt = null;
-          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-          Date currentDate = new Date();
-          Date graceDate = null;
-          try {
-               query = "select value from system_configuration_db where tag='GRACE_PERIOD_END_DATE'";
-               logger.info("Query is " + query);
-               stmt = conn.createStatement();
-               rs1 = stmt.executeQuery(query);
-               while (rs1.next()) {
-                    graceDate = sdf.parse(rs1.getString("value"));
-                    if (currentDate.compareTo(graceDate) > 0) {
-                         period = "post_grace";
-                    } else {
-                         period = "grace";
-                    }
-               }
-               logger.info(" Current Period is " + period);
-          } catch (Exception ex) {
-               ex.printStackTrace();
-          } finally {
-               try {
-                    stmt.close();
-                    rs1.close();
-               } catch (SQLException e) {
-
-               }
-
-          }
-          return period;
-     }
-
-     public String getPreviousTimeFromRaw(String repName, Connection conn) {
-          String lastDate = null;
-          String query = null;
-          ResultSet rs = null;
-          Statement stmt = null;
-          try {
-               query = "select Changed_date from " + repName + " where sno=(select MAX(sno) from " + repName + ")";
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(query);
-               while (rs.next()) {
-                    lastDate = rs.getString("Changed_date");
-               }
-          } catch (Exception ex) {
-               lastDate = null;
-               ex.printStackTrace();
-          } finally {
-               if (conn != null) {
-                    try {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (stmt != null) {
-                              stmt.close();
-                         }
-                    } catch (Exception e) {
-                    }
-               }
-          }
-          return lastDate;
-     }
+                } catch (Exception e) {
+                }
+            }
+        }
+        return lastDate;
+    }
 
 //     public String getPreviousFileCounts(String repName, Connection conn) {
 //          String seq_no = null;
@@ -1269,35 +1275,35 @@ public class HexFileReader {
 //          }
 //          return seq_no;
 //     }
-     public String getFilePath(Connection conn, String tag_type) {
-          String file_path = "";
-          String query = null;
-          ResultSet rs = null;
-          Statement stmt = null;
-          try {
-               query = "select value from sys_param where tag='" + tag_type + "'";
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(query);
-               logger.info("to get configuration" + query);
-               while (rs.next()) {
-                    file_path = rs.getString("value");
-                    logger.info("in function file path " + file_path);
-               }
-          } catch (Exception ex) {
-               ex.printStackTrace();
-               logger.error("e " + ex);
-          } finally {
-               try {
-                    rs.close();
-                    stmt.close();
-               } catch (SQLException ex) {
-                    logger.error("e " + ex);
-               }
+    public String getFilePath(Connection conn, String tag_type) {
+        String file_path = "";
+        String query = null;
+        ResultSet rs = null;
+        Statement stmt = null;
+        try {
+            query = "select value from app.sys_param where tag='" + tag_type + "'";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            logger.info("to get configuration" + query);
+            while (rs.next()) {
+                file_path = rs.getString("value");
+                logger.info("in function file path " + file_path);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            logger.error("e " + ex);
+        } finally {
+            try {
+                rs.close();
+                stmt.close();
+            } catch (SQLException ex) {
+                logger.error("e " + ex);
+            }
 
-          }
-          return file_path;
+        }
+        return file_path;
 
-     }
+    }
 
 //     public String updateNextCounts(String repName, Connection conn, int seq_no) {
 //          String seq_no1 = null;
@@ -1337,332 +1343,332 @@ public class HexFileReader {
 //          }
 //          return seq_no1;
 //     }
-     public String getTableSize(Connection conn, String tableName) {
-          String tableSize = null;
-          String query = null;
-          // Connection conn = null;
-          Statement stmt = null;
-          ResultSet rs = null;
-          try {
-               query = "SELECT round(sum((data_length + index_length) / 1024 / 1024 ), 4) `Size`  FROM information_schema.TABLES where table_name = '"
-                       + tableName + "'";
-               // conn = conn.getConnection();
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(query);
+    public String getTableSize(Connection conn, String tableName) {
+        String tableSize = null;
+        String query = null;
+        // Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            query = "SELECT round(sum((data_length + index_length) / 1024 / 1024 ), 4) `Size`  FROM information_schema.TABLES where table_name = '"
+                    + tableName + "'";
+            // conn = conn.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
 
-               while (rs.next()) {
-                    tableSize = rs.getString("Size");
-               }
-          } catch (Exception e) {
-               e.printStackTrace();
-               tableSize = "0";
-          } finally {
-               if (conn != null) {
-                    try {
-                         if (rs != null) {
-                              rs.close();
-                         }
-                         if (stmt != null) {
-                              stmt.close();
-                         }
-                         // c onn.close();
-                    } catch (Exception e) {
-                    }
-               }
-          }
-          return tableSize;
-     }
-
-     public boolean updateCDRWithPartIdThree(Connection conn, ArrayList<String> billIds, String repName,
-             String startTime, int startSno, int endSno) {
-          int i = 0;
-          boolean result = false;
-          int eStartId = 0;
-          int eEndId = 0;
-          String query = null;
-          String updateQuery = null;
-          String tempBillID = null;
-          Statement stmt = null;
-          ResultSet rs = null;
-          PreparedStatement ps = null;
-          ArrayList<Integer[]> idDetailsOfCdr = null;
-          // HashMap< String, String > tempBillIds = null;
-          try {
-               idDetailsOfCdr = new ArrayList<Integer[]>();
-               idDetailsOfCdr = this.getBillIdDetailByCDRStartTime(conn, startTime);
-               if (idDetailsOfCdr != null) {
-                    for (Object[] idDetail : idDetailsOfCdr) {
-                         if (i == 0) {
-                              eStartId = (int) idDetail[0];
-                              eEndId = (int) idDetail[1];
-                         } else {
-                              eEndId = (int) idDetail[1];
-                         }
-                         i++;
-                    }
-                    query = "select billID,answerTime from zte_billid_temp where sno >=" + eStartId + " and sno <="
-                            + eEndId;
-                    logger.info("Query for getting all is :[" + query + "]");
-                    stmt = conn.createStatement();
-                    rs = stmt.executeQuery(query);
-                    updateQuery = "update " + repName
-                            + " set AnswerTime=?,cdr_date=? where PartRecID='3' and BillID=? and sno >=" + startSno
-                            + " and sno <=" + endSno;
-                    // updateQuery = "update "+repName+" set AnswerTime=IF((select answerTime from
-                    // zte_billid_temp where partID='1' and billID=?)IS NULL, AnswerTime,
-                    // answerTime) where PartRecID='3' and BillID=?";
-                    ps = conn.prepareStatement(updateQuery);
+            while (rs.next()) {
+                tableSize = rs.getString("Size");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            tableSize = "0";
+        } finally {
+            if (conn != null) {
+                try {
                     if (rs != null) {
-                         // tempBillIds = new HashMap< String, String >();
-                         while (rs.next()) {
-                              tempBillID = rs.getString("billID");// rs.getString("answerTime")
-                              if (billIds.contains(tempBillID)) {
-                                   ps.setString(1, rs.getString("answerTime"));
-                                   ps.setString(2, rs.getString("answerTime"));
-                                   ps.setString(3, tempBillID);
-                                   // logger.info("Update query for BillId ["+tempBillID+"] and AnswerTime
-                                   // ["+rs.getString("answerTime")+"] is :["+updateQuery.toString()+"]");
-                                   ps.addBatch();
-                              }
-                         }
-                    }
-                    ps.executeBatch();
-               }
-               if (conn != null) {
-                    conn.commit();
-               }
-               // stmt = conn.createStatement();
-               // stmt.executeQuery("delete from zte_billid_temp where
-               // answerTime<=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)")
-
-          } catch (Exception e) {
-               try {
-                    if (conn != null) {
-                         conn.rollback();
-                    }
-               } catch (Exception ex) {
-               }
-               result = false;
-               e.printStackTrace();
-          } finally {
-               try {
-                    if (ps != null) {
-                         ps.clearParameters();
-                         ps.close();
-                    }
-                    if (rs != null) {
-                         rs.close();
+                        rs.close();
                     }
                     if (stmt != null) {
-                         stmt.close();
+                        stmt.close();
                     }
-               } catch (Exception ex) {
-               }
-          }
-          return result;
-     }
+                    // c onn.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+        return tableSize;
+    }
 
-     public boolean insertSlotStartAndEndSnoId(Connection conn, String cdrStartTime, int eStartId, int eEndId) {
-          boolean result = false;
-          try {
-               result = new com.glocks.db.Query().insert(conn,
-                       "insert into zte_id_details(cdr_start_time,e_start_id,e_end_id) values('" + cdrStartTime + "',"
-                       + eStartId + "," + eEndId + ")");
-          } catch (Exception ex) {
-               result = false;
-               ex.printStackTrace();
-          }
-          return result;
-     }
-
-     public ArrayList<Integer[]> getBillIdDetailByCDRStartTime(Connection conn, String cdrStartTime) {
-          ArrayList<Integer[]> result = null;
-          String query = null;
-          Statement stmt = null;
-          ResultSet rs = null;
-          try {
-               query = "select e_start_id,e_end_id from zte_id_details where DATE_FORMAT(cdr_start_time,'%Y-%m-%d %H:%i:%s') <= DATE_SUB(FROM_UNIXTIME(FLOOR( UNIX_TIMESTAMP('"
-                       + cdrStartTime
-                       + "')/300 ) * 300),INTERVAL 15 MINUTE) AND DATE_FORMAT(cdr_start_time,'%Y-%m-%d %H:%i:%s') >= DATE_SUB(FROM_UNIXTIME(FLOOR( UNIX_TIMESTAMP('"
-                       + cdrStartTime + "')/300 ) * 300),INTERVAL 2 HOUR)";
-               logger.info("Query for getting id range is [" + query + "]");
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(query);
-               if (rs != null) {
-                    result = new ArrayList<Integer[]>();
+    public boolean updateCDRWithPartIdThree(Connection conn, ArrayList<String> billIds, String repName,
+            String startTime, int startSno, int endSno) {
+        int i = 0;
+        boolean result = false;
+        int eStartId = 0;
+        int eEndId = 0;
+        String query = null;
+        String updateQuery = null;
+        String tempBillID = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        PreparedStatement ps = null;
+        ArrayList<Integer[]> idDetailsOfCdr = null;
+        // HashMap< String, String > tempBillIds = null;
+        try {
+            idDetailsOfCdr = new ArrayList<Integer[]>();
+            idDetailsOfCdr = this.getBillIdDetailByCDRStartTime(conn, startTime);
+            if (idDetailsOfCdr != null) {
+                for (Object[] idDetail : idDetailsOfCdr) {
+                    if (i == 0) {
+                        eStartId = (int) idDetail[0];
+                        eEndId = (int) idDetail[1];
+                    } else {
+                        eEndId = (int) idDetail[1];
+                    }
+                    i++;
+                }
+                query = "select billID,answerTime from zte_billid_temp where sno >=" + eStartId + " and sno <="
+                        + eEndId;
+                logger.info("Query for getting all is :[" + query + "]");
+                stmt = conn.createStatement();
+                rs = stmt.executeQuery(query);
+                updateQuery = "update " + repName
+                        + " set AnswerTime=?,cdr_date=? where PartRecID='3' and BillID=? and sno >=" + startSno
+                        + " and sno <=" + endSno;
+                // updateQuery = "update "+repName+" set AnswerTime=IF((select answerTime from
+                // zte_billid_temp where partID='1' and billID=?)IS NULL, AnswerTime,
+                // answerTime) where PartRecID='3' and BillID=?";
+                ps = conn.prepareStatement(updateQuery);
+                if (rs != null) {
+                    // tempBillIds = new HashMap< String, String >();
                     while (rs.next()) {
-                         result.add(new Integer[]{rs.getInt("e_start_id"), rs.getInt("e_end_id")});
+                        tempBillID = rs.getString("billID");// rs.getString("answerTime")
+                        if (billIds.contains(tempBillID)) {
+                            ps.setString(1, rs.getString("answerTime"));
+                            ps.setString(2, rs.getString("answerTime"));
+                            ps.setString(3, tempBillID);
+                            // logger.info("Update query for BillId ["+tempBillID+"] and AnswerTime
+                            // ["+rs.getString("answerTime")+"] is :["+updateQuery.toString()+"]");
+                            ps.addBatch();
+                        }
                     }
-               }
-          } catch (Exception ex) {
-               ex.printStackTrace();
-          } finally {
-               try {
-                    if (rs != null) {
-                         rs.close();
-                    }
-                    if (stmt != null) {
-                         stmt.close();
-                    }
-               } catch (Exception ex) {
-               }
-          }
-          return result;
-     }
+                }
+                ps.executeBatch();
+            }
+            if (conn != null) {
+                conn.commit();
+            }
+            // stmt = conn.createStatement();
+            // stmt.executeQuery("delete from zte_billid_temp where
+            // answerTime<=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 HOUR)")
 
-     public String getDatabaseSize(Connection conn, String dbName) {
-          String result = null;
-          Statement stmt = null;
-          ResultSet rs = null;
-          try {
-               stmt = conn.createStatement();
-               rs = stmt.executeQuery(
-                       "SELECT  sum(round(((data_length + index_length) / 1024 / 1024 ), 4))  as size FROM information_schema.TABLES  WHERE table_schema ='"
-                       + dbName + "'");
-               if (rs != null) {
-                    while (rs.next()) {
-                         result = rs.getString("size");
-                    }
-               }
-          } catch (Exception e) {
-               result = "0";
-               e.printStackTrace();
-          } finally {
-               try {
-                    if (rs != null) {
-                         rs.close();
-                    }
-                    if (stmt != null) {
-                         stmt.close();
-                    }
-               } catch (Exception ex) {
-               }
-          }
-          return result;
-     }
-
-     public int getFieldIndex(String fieldName) {
-          int result = 0;
-          List<String> fieldList = null;
-          try {
-               fieldList = new ArrayList<String>();
-               fieldList = Arrays.asList(fields);
-               if (fieldList.contains(fieldName)) {
-                    result = fieldList.indexOf(fieldName);
-               }
-
-          } catch (Exception ex) {
-               result = 0;
-               ex.printStackTrace();
-          }
-          return result;
-     }
-
-     public boolean validateJavaDate(String strDate) {
-          logger.info("date,operator,," + strDate);
-          strDate = strDate.replaceAll("/", "-");
-          logger.info("date....." + strDate);
-          if (strDate.trim().equals("")) {
-               return true;
-          } else {
-               SimpleDateFormat sdfrmt = new SimpleDateFormat("dd-MM-yyyy");
-               sdfrmt.setLenient(false);
-
-               try {
-                    Date javaDate = sdfrmt.parse(strDate);
-                    logger.info(strDate + " is valid date format");
-               } catch (Exception e) {
-                    logger.info(strDate + " is Invalid Date format");
-                    return false;
-               }
-               return true;
-          }
-     }
-
-     private String getUserTypeName(Connection conn, String main_type, String txn_id) {
-          String usrtype = "";
-          String query = null;
-          ResultSet rs1 = null;
-          Statement stmt = null;
-          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-          Date currentDate = new Date();
-          Date graceDate = null;
-          try {
-               query = "select  usertype_name  from users inner join usertype on users.usertype_id  = usertype.id inner join "
-                       + main_type.trim().toLowerCase() + "_mgmt on user_id =  users.id where txn_id  = '" + txn_id + "'";
-               logger.info("Query  (getUserTypeName) is " + query);
-               stmt = conn.createStatement();
-               rs1 = stmt.executeQuery(query);
-               while (rs1.next()) {
-                    usrtype = rs1.getString("usertype_name");
-               }
-               logger.info("  usrtype is " + usrtype);
-          } catch (Exception ex) {
-               ex.printStackTrace();
-          } finally {
-               try {
+        } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (Exception ex) {
+            }
+            result = false;
+            e.printStackTrace();
+        } finally {
+            try {
+                if (ps != null) {
+                    ps.clearParameters();
+                    ps.close();
+                }
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
                     stmt.close();
-                    rs1.close();
-               } catch (SQLException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-               }
+                }
+            } catch (Exception ex) {
+            }
+        }
+        return result;
+    }
 
-          }
-          return usrtype;
-     }
+    public boolean insertSlotStartAndEndSnoId(Connection conn, String cdrStartTime, int eStartId, int eEndId) {
+        boolean result = false;
+        try {
+            result = new com.glocks.db.Query().insert(conn,
+                    "insert into zte_id_details(cdr_start_time,e_start_id,e_end_id) values('" + cdrStartTime + "',"
+                    + eStartId + "," + eEndId + ")");
+        } catch (Exception ex) {
+            result = false;
+            ex.printStackTrace();
+        }
+        return result;
+    }
 
-     public void insertSourceTac(Connection conn, String tac, String txnFile, Long tacCount, String dbName) {
-          Statement stmt = null;
-          logger.info("tacCount " + tacCount);
-          String raw_query = "insert into " + dbName + "(tac , TXN_ID, RECORD_COUNT   ) "
-                  + "  values('" + tac + "', '" + txnFile + "', " + tacCount + " )";
-          try {
-               logger.info(" " + raw_query);
-               stmt = conn.createStatement();
-               stmt.executeUpdate(raw_query);
-          } catch (Exception e) {
-               logger.warn("  " + e);
-          } finally {
-               try {
+    public ArrayList<Integer[]> getBillIdDetailByCDRStartTime(Connection conn, String cdrStartTime) {
+        ArrayList<Integer[]> result = null;
+        String query = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            query = "select e_start_id,e_end_id from zte_id_details where DATE_FORMAT(cdr_start_time,'%Y-%m-%d %H:%i:%s') <= DATE_SUB(FROM_UNIXTIME(FLOOR( UNIX_TIMESTAMP('"
+                    + cdrStartTime
+                    + "')/300 ) * 300),INTERVAL 15 MINUTE) AND DATE_FORMAT(cdr_start_time,'%Y-%m-%d %H:%i:%s') >= DATE_SUB(FROM_UNIXTIME(FLOOR( UNIX_TIMESTAMP('"
+                    + cdrStartTime + "')/300 ) * 300),INTERVAL 2 HOUR)";
+            logger.info("Query for getting id range is [" + query + "]");
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            if (rs != null) {
+                result = new ArrayList<Integer[]>();
+                while (rs.next()) {
+                    result.add(new Integer[]{rs.getInt("e_start_id"), rs.getInt("e_end_id")});
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
                     stmt.close();
-               } catch (SQLException ex) {
-                   // java.util.logging.LogManager.getLogger(HexFileReader.class.getName()).log(Level.SEVERE, null, ex);
-            	   org.apache.logging.log4j.LogManager.getLogger(HexFileReader.class.getName());
-               }
-          }
+                }
+            } catch (Exception ex) {
+            }
+        }
+        return result;
+    }
 
-     }
-
-     void cdrFileDetailsInsert(Connection conn, String dateFunction, String fileName, String repName, int total_records_count, int total_error_record_count, Date p1starttime, Date p1endTime, String sourc) {
-
-          Statement stmt = null;
-
-          DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-          String raw_query = "insert into cdr_file_details_db(created_on, file_name, operator, total_records_count, total_error_record_count,source   ,   P1StartTime ,P1EndTime    ) "
-                  + "  values(current_timestamp ,  '" + fileName + "', '" + repName + "', '" + total_records_count + "','" + total_error_record_count + "','" + sourc + "' , p1starttime,p1endTime  )";
-          try {
-               logger.info("  cdrFileDetailsInsert is " + raw_query);
-               stmt = conn.createStatement();
-               stmt.executeUpdate(raw_query);
-
-          } catch (Exception e) {
-               logger.warn("  " + e);
-          } finally {
-               try {
+    public String getDatabaseSize(Connection conn, String dbName) {
+        String result = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(
+                    "SELECT  sum(round(((data_length + index_length) / 1024 / 1024 ), 4))  as size FROM information_schema.TABLES  WHERE table_schema ='"
+                    + dbName + "'");
+            if (rs != null) {
+                while (rs.next()) {
+                    result = rs.getString("size");
+                }
+            }
+        } catch (Exception e) {
+            result = "0";
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (stmt != null) {
                     stmt.close();
-               } catch (SQLException ex) {
-                    //java.util.logging.LogManager.getLogger(HexFileReader.class.getName()).log(Level.SEVERE, null, ex);
-                    org.apache.logging.log4j.LogManager.getLogger(HexFileReader.class.getName());
-               }
-          }
-     }
+                }
+            } catch (Exception ex) {
+            }
+        }
+        return result;
+    }
 
-     private void checkExtraSerialNo(ArrayList<String> fileLines, int failed_flag, String z, Long v) {
-          if (v > 4) {
-          }
+    public int getFieldIndex(String fieldName) {
+        int result = 0;
+        List<String> fieldList = null;
+        try {
+            fieldList = new ArrayList<String>();
+            fieldList = Arrays.asList(fields);
+            if (fieldList.contains(fieldName)) {
+                result = fieldList.indexOf(fieldName);
+            }
 
-     }
+        } catch (Exception ex) {
+            result = 0;
+            ex.printStackTrace();
+        }
+        return result;
+    }
+
+    public boolean validateJavaDate(String strDate) {
+        logger.info("date,operator,," + strDate);
+        strDate = strDate.replaceAll("/", "-");
+        logger.info("date....." + strDate);
+        if (strDate.trim().equals("")) {
+            return true;
+        } else {
+            SimpleDateFormat sdfrmt = new SimpleDateFormat("dd-MM-yyyy");
+            sdfrmt.setLenient(false);
+
+            try {
+                Date javaDate = sdfrmt.parse(strDate);
+                logger.info(strDate + " is valid date format");
+            } catch (Exception e) {
+                logger.info(strDate + " is Invalid Date format");
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private String getUserTypeName(Connection conn, String main_type, String txn_id) {
+        String usrtype = "";
+        String query = null;
+        ResultSet rs1 = null;
+        Statement stmt = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date currentDate = new Date();
+        Date graceDate = null;
+        try {
+            query = "select  usertype_name  from users inner join usertype on users.usertype_id  = usertype.id inner join "
+                    + main_type.trim().toLowerCase() + "_mgmt on user_id =  users.id where txn_id  = '" + txn_id + "'";
+            logger.info("Query  (getUserTypeName) is " + query);
+            stmt = conn.createStatement();
+            rs1 = stmt.executeQuery(query);
+            while (rs1.next()) {
+                usrtype = rs1.getString("usertype_name");
+            }
+            logger.info("  usrtype is " + usrtype);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            try {
+                stmt.close();
+                rs1.close();
+            } catch (SQLException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        }
+        return usrtype;
+    }
+
+    public void insertSourceTac(Connection conn, String tac, String txnFile, Long tacCount, String dbName) {
+        Statement stmt = null;
+        logger.info("tacCount " + tacCount);
+        String raw_query = "insert into " + dbName + "(tac , TXN_ID, RECORD_COUNT   ) "
+                + "  values('" + tac + "', '" + txnFile + "', " + tacCount + " )";
+        try {
+            logger.info(" " + raw_query);
+            stmt = conn.createStatement();
+            stmt.executeUpdate(raw_query);
+        } catch (Exception e) {
+            logger.warn("  " + e);
+        } finally {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                // java.util.logging.LogManager.getLogger(HexFileReader.class.getName()).log(Level.SEVERE, null, ex);
+                org.apache.logging.log4j.LogManager.getLogger(HexFileReader.class.getName());
+            }
+        }
+
+    }
+
+    void cdrFileDetailsInsert(Connection conn, String dateFunction, String fileName, String repName, int total_records_count, int total_error_record_count, Date p1starttime, Date p1endTime, String sourc) {
+
+        Statement stmt = null;
+
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String raw_query = "insert into cdr_file_details_db(created_on, file_name, operator, total_records_count, total_error_record_count,source   ,   P1StartTime ,P1EndTime    ) "
+                + "  values(current_timestamp ,  '" + fileName + "', '" + repName + "', '" + total_records_count + "','" + total_error_record_count + "','" + sourc + "' , p1starttime,p1endTime  )";
+        try {
+            logger.info("  cdrFileDetailsInsert is " + raw_query);
+            stmt = conn.createStatement();
+            stmt.executeUpdate(raw_query);
+
+        } catch (Exception e) {
+            logger.warn("  " + e);
+        } finally {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                //java.util.logging.LogManager.getLogger(HexFileReader.class.getName()).log(Level.SEVERE, null, ex);
+                org.apache.logging.log4j.LogManager.getLogger(HexFileReader.class.getName());
+            }
+        }
+    }
+
+    private void checkExtraSerialNo(ArrayList<String> fileLines, int failed_flag, String z, Long v) {
+        if (v > 4) {
+        }
+
+    }
 
 }
 
@@ -1676,8 +1682,8 @@ public class HexFileReader {
 //        try {
 //              CEIRFeatureFileFunctions ceirfunction = new CEIRFeatureFileFunctions();
 //              ceirfunction.u pdateFeatureManagementStatus(conn, txn_id, 1, mgnt_table_db, feature);
-//              ceirfunction.updateFeatureFileStatus(conn,txn_id, 2, feature, sub_feature); // update web_action_db    
-//             
+//              ceirfunction.updateFeatureFileStatus(conn,txn_id, 2, feature, sub_feature); // update web_action_db
+//
 //            map.put("feature", feature);
 //            // map.put("raw_upload_set_no", (String)raw_upload_set_no);
 //            map.put("sub_feature", sub_feature);
@@ -2217,7 +2223,7 @@ public class HexFileReader {
 //        return cntctNo;
 //    }
 //
-//	
+//
 
 /*
  * public boolean readHexdumpFile( String path, String fileName ){ int i = 0;
@@ -2263,7 +2269,7 @@ public class HexFileReader {
  * fieldOffset[2] ){ case 0 : byteData = Arrays.copyOfRange( buffer,
  * fieldOffset[0], fieldOffset[0]+fieldOffset[1]); data =
  * dc.hex2Decimal(dc.bytesToHex(byteData)); temp.add( data ); break; case 1 :
- * 
+ *
  * byteData = Arrays.copyOfRange( buffer, fieldOffset[0],
  * fieldOffset[0]+fieldOffset[1]);
  * //logger.info("FieldName:["+fieldName+"],Offset["+fieldOffset[0]+
@@ -2346,7 +2352,7 @@ public class HexFileReader {
 //        HashMap<String, int[]> hm = new HashMap<String, int[]>();
 //
 //        try {
-//             
+//
 //            buffer = new byte[392];
 //            file = new File(filePath);
 //            fis = new FileInputStream(file);

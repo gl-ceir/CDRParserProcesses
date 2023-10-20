@@ -7,7 +7,6 @@ package com.glocks.service;
 
 import com.gl.Rule_engine_Old.RuleEngineApplication;
 import com.glocks.parser.CEIRFeatureFileFunctions;
-import com.glocks.parser.HexFileReader;
 import com.glocks.util.Util;
 import java.io.BufferedWriter;
 import java.sql.Connection;

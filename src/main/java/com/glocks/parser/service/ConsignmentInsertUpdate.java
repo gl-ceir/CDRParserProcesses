@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 import com.glocks.log.LogWriter;
 import com.glocks.parser.CEIRFeatureFileFunctions;
 import com.glocks.parser.CEIRFeatureFileParser;
-import com.glocks.parser.HexFileReader;
+//import com.glocks.parser.HexFileReader;
 import com.glocks.parser.Rule;
 import com.glocks.parser.RuleFilter;
 import com.glocks.util.Util;
@@ -372,7 +372,7 @@ public class ConsignmentInsertUpdate {
                     logger.info(" sourceTacList SIZE:: " + sourceTacList.size());
                     Map<String, Long> map = sourceTacList.stream()
                             .collect(Collectors.groupingBy(c -> c, Collectors.counting()));
-                    map.forEach((k, v) -> new HexFileReader().insertSourceTac(conn, k, device_info.get("file_name"), v, "source_tac_inactive_info"));
+                    map.forEach((k, v) -> insertSourceTac(conn, k, device_info.get("file_name"), v, "source_tac_inactive_info"));
                 }
                 ceirfunction.UpdateStatusViaApi(conn, txn_id, 2, operator);
                 ceirfunction.updateFeatureFileStatus(conn, txn_id, 4, operator, sub_feature);
@@ -497,6 +497,26 @@ public class ConsignmentInsertUpdate {
 
     }
 
+    public void insertSourceTac(Connection conn, String tac, String txnFile, Long tacCount, String dbName) {
+        Statement stmt = null;
+        logger.info("tacCount " + tacCount);
+        String raw_query = "insert into " + dbName + "(tac , TXN_ID, RECORD_COUNT   ) "
+                + "  values('" + tac + "', '" + txnFile + "', " + tacCount + " )";
+        try {
+            logger.info(" " + raw_query);
+            stmt = conn.createStatement();
+            stmt.executeUpdate(raw_query);
+        } catch (Exception e) {
+            logger.warn("  " + e);
+        } finally {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                // java.util.logging.LogManager.getLogger(HexFileReader.class.getName()).log(Level.SEVERE, null, ex);
+             }
+        }
+
+    }
     private void insertIntoDeviceFileDetailsDb(Connection conn, String operator, String sub_feature, String txn_id, int totalCount, String tableName, String startTime, String EndTime) {
 
         try {

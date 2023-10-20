@@ -16,10 +16,12 @@ import org.apache.logging.log4j.Logger;
 import com.gl.Rule_engine_Old.RuleEngineApplication;
 import com.glocks.log.LogWriter;
 import static com.glocks.parser.CdrParserProcess.appdbName;
+import static com.glocks.parser.CdrParserProcess.defaultStringtoDate;
 import com.glocks.util.Util;
 
 import java.io.BufferedWriter;
 
+//ETl-Class
 public class RuleFilter {
 
     private static Logger logger = LogManager.getLogger(RuleFilter.class);
@@ -125,8 +127,8 @@ public class RuleFilter {
         String dateFunction = Util.defaultDate(isOracle);
         Statement stmt = null;
         try {
-            String query = "insert into " + appdbName + ".invalid_imei (CREATED_ON,MODIFIED_ON ,IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
-                    + " values ( now() , now() ,'" + device_info.get("IMEI") + "','" + device_info.get("rule_name") + "','" + device_info.get("operator") + "', ' ' ,'" + device_info.get("operator_tag") + "' ,'" + device_info.get("file_name") + "','" + device_info.get("record_time") + "'  ) ";
+            String query = "insert into " + appdbName + ".invalid_imei ( IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
+                    + " values ( '" + device_info.get("IMEI") + "','" + device_info.get("rule_name") + "','" + device_info.get("operator") + "', ' ' ,'" + device_info.get("operator_tag") + "' ,'" + device_info.get("file_name") + "', " + defaultStringtoDate(device_info.get("record_time")) + "  ) ";
             logger.debug("Qury " + query);
             stmt = conn.createStatement();
             stmt.executeUpdate(query);

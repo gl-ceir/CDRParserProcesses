@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author maverick
  */
+//ETl-Class
 public class InsertDbDao implements Runnable {
 
     static Logger logger = LogManager.getLogger(InsertDbDao.class);

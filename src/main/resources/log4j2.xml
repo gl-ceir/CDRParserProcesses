@@ -1,17 +1,23 @@
-<!--<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="INFO">
     <Appenders>
-        <Console name="ConsoleAppender" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
-        </Console>
-        <File name="FileAppender" fileName="${env:DATA_HOME}/cdrpreprocessor/seatel/st_p_gw/logs/log${date:yyyyMMdd}.log" immediateFlush="false" append="true">
-            <PatternLayout pattern="%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
-        </File>
+        <RollingFile
+            name="rollingFile"
+            fileName="/u02/eirsdata/logs/logs.log"
+            filePattern="/u02/eirsdata/logs/logs-%d{dd-MMM}.log"
+            ignoreExceptions="false">
+            <PatternLayout>
+                <Pattern>%d{yyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} :%L - %msg%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5" />
+        </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="info">
-            <AppenderRef ref="ConsoleAppender" />
-            <AppenderRef ref="FileAppender"/>
+        <Root level="debug">
+            <AppenderRef ref="rollingFile" />
         </Root>
     </Loggers>
-</Configuration>-->
+</Configuration>

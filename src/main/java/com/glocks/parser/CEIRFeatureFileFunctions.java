@@ -398,8 +398,8 @@ public class CEIRFeatureFileFunctions {
         String InsrtQry = null;
         boolean isOracle = conn.toString().contains("oracle");
         String dateFunction = Util.defaultDate(isOracle);
-        String period = new HexFileReader().checkGraceStatus(conn);
-
+        //  String period = new HexFileReader().checkGraceStatus(conn);
+        String period = null;
         try {
             String ValImei = "";
             for (int i = 1; i < 5; i++) {
