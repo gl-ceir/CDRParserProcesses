@@ -1,5 +1,14 @@
 package com.glocks.parser;
 
+import com.gl.rule_engine.RuleEngineApplication;
+import com.gl.rule_engine.RuleInfo;
+import com.glocks.log.LogWriter;
+import static com.glocks.parser.CdrParserProcess.appdbName;
+import static com.glocks.parser.CdrParserProcess.auddbName;
+import static com.glocks.parser.CdrParserProcess.defaultStringtoDate;
+import static com.glocks.parser.CdrParserProcess.repdbName;
+import com.glocks.util.Util;
+import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.sql.*;
@@ -9,25 +18,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Scanner;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.gl.Rule_engine_Old.RuleEngineApplication;
-import com.glocks.log.LogWriter;
-import static com.glocks.parser.CdrParserProcess.appdbName;
-import static com.glocks.parser.CdrParserProcess.defaultStringtoDate;
-import com.glocks.util.Util;
-
-import java.io.BufferedWriter;
-
-//ETl-Class
 public class RuleFilter {
 
     private static Logger logger = LogManager.getLogger(RuleFilter.class);
 
-    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist) {
-        logger.debug("getMyRule started ");
+    public HashMap getMyRule(Connection conn, HashMap<String, String> device_info, ArrayList<Rule> rulelist, String appDbName, String audDbName, String repDbName) {
+        logger.debug("getMyRule started  appDbName " + appdbName);
         BufferedWriter bw = null;
         HashMap<String, String> rule_detail = new HashMap<String, String>();    // CDR
         String output = "Yes";
@@ -41,7 +40,7 @@ public class RuleFilter {
             device_info.put("action", rule.action);
             device_info.put("failed_rule_aciton", rule.failed_rule_aciton);
             String[] my_arr = {device_info.get("rule_name"), //0
-                "1", //1
+                "executeRule", //1
                 "CDR", //  2
                 // (device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH")) ? device_info.get("IMEI") : device_info.get("IMEI").substring(0, 1 4), //3
                 device_info.get("IMEI").length() > 14 ? device_info.get("IMEI").substring(0, 14) : device_info.get("IMEI"),
@@ -57,8 +56,15 @@ public class RuleFilter {
                 device_info.get("action") //13
         };
             try {
+
+                RuleInfo re = new RuleInfo(appDbName, audDbName, repDbName, device_info.get("rule_name"), "executeRule", "CDR", device_info.get("IMEI"), "0", device_info.get("IMEI").length() > 14 ? device_info.get("IMEI").substring(0, 14) : device_info.get("IMEI"),
+                        "0", device_info.get("operator"), "imei", device_info.get("operator_tag"), device_info.get("MSISDN"), device_info.get("action"),
+                        device_info.get("IMSI"), device_info.get("record_type"), device_info.get("system_type"), device_info.get("source"),
+                        device_info.get("raw_cdr_file_name"), device_info.get("imei_arrival_time"), "txnId", "fileArray", device_info.get("period"), conn, bw);
+
                 logger.debug("Rule Started .." + device_info.get("rule_name"));
-                output = RuleEngineApplication.startRuleEngine(my_arr, conn, bw);
+
+                output = RuleEngineApplication.startRuleEngine(re);
                 logger.debug("Rule End .." + device_info.get("rule_name") + "; Rule Output:" + output + " ;  Expected O/T : " + device_info.get("output"));
             } catch (Exception e) {
                 logger.error("Error1 " + e);
@@ -68,7 +74,7 @@ public class RuleFilter {
             } else {
                 String[] my_action_arr = {
                     device_info.get("rule_name"), //0  ruleName
-                    "2", //1   executeRuleExecuteAction
+                    "executeAction", //1   executeRuleExecuteAction
                     "CDR", //2   FeatureName
                     device_info.get("IMEI"), //3   imei
                     "0", //4
@@ -90,8 +96,13 @@ public class RuleFilter {
                     device_info.get("operator"), //20           operator
                     device_info.get("file_name") //21         fileName
                 };
+
+                RuleInfo re = new RuleInfo(appdbName, auddbName, repdbName, device_info.get("rule_name"), "executeAction", "CDR", device_info.get("IMEI"), "0", device_info.get("file_name"),
+                        "0", device_info.get("operator"), "error", device_info.get("operator_tag"), device_info.get("MSISDN"), device_info.get("action"),
+                        device_info.get("IMSI"), device_info.get("record_type"), device_info.get("system_type"), device_info.get("source"),
+                        device_info.get("raw_cdr_file_name"), device_info.get("imei_arrival_time"), "txnId", "fileArray", device_info.get("period"), conn, bw);
                 try {
-                    action_output = RuleEngineApplication.startRuleEngine(my_action_arr, conn, bw);
+                    action_output = RuleEngineApplication.startRuleEngine(re);
                 } catch (Exception e) {
                     logger.error("Error2 " + e);
                 }
@@ -127,8 +138,8 @@ public class RuleFilter {
         String dateFunction = Util.defaultDate(isOracle);
         Statement stmt = null;
         try {
-            String query = "insert into " + appdbName + ".invalid_imei ( IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
-                    + " values ( '" + device_info.get("IMEI") + "','" + device_info.get("rule_name") + "','" + device_info.get("operator") + "', ' ' ,'" + device_info.get("operator_tag") + "' ,'" + device_info.get("file_name") + "', " + defaultStringtoDate(device_info.get("record_time")) + "  ) ";
+            String query = "insert into " + appdbName + ".invalid_imei (IMEI_ESN_MEID ,RULE_NAME ,OPERATOR_NAME, SN_OF_DEVICE ,OPERATOR_TYPE ,  FILE_NAME ,RECORD_DATE) "
+                    + " values ( '" + device_info.get("IMEI") + "','" + device_info.get("rule_name") + "','" + device_info.get("operator") + "', ' ' ,'" + device_info.get("operator_tag") + "' ,'" + device_info.get("file_name") + "'  , " + defaultStringtoDate(device_info.get("record_time")) + "  ) ";
             logger.debug("Qury " + query);
             stmt = conn.createStatement();
             stmt.executeUpdate(query);
@@ -160,7 +171,7 @@ public class RuleFilter {
             String fileArray = device_info.get("DeviceType") + "," + device_info.get("DeviceIdType") + "," + device_info.get("MultipleSIMStatus") + "," + device_info.get("SNofDevice") + "," + device_info.get("IMEIESNMEID") + "," + device_info.get("Devicelaunchdate") + "," + device_info.get("DeviceStatus") + "";
             String[] my_arr = {
                 device_info.get("rule_name"), //0
-                "1", //1
+                "executeRule", //1
                 device_info.get("feature"), //2   (consign,stock,Non CDr etc
                 (((device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH"))) ? device_info.get("IMEIESNMEID") : device_info.get("IMEIESNMEID").substring(0, 14)), //3
                 device_info.get("SNofDevice"), //4//
@@ -176,8 +187,14 @@ public class RuleFilter {
                 device_info.get("txn_id"), //1 4
                 fileArray //15
             };
-            logger.debug(" Rule Execution Start" + Arrays.toString(my_arr));
-            output = RuleEngineApplication.startRuleEngine(my_arr, conn, bw);
+            RuleInfo re = new RuleInfo("app", "aud", "rep", device_info.get("rule_name"), "executeRule", device_info.get("feature"), device_info.get("IMEIESNMEID").length() > 14 ? device_info.get("IMEIESNMEID").substring(0, 14) : device_info.get("IMEIESNMEID"),
+                    device_info.get("SNofDevice"), device_info.get("file_name"),
+                    device_info.get("DeviceType"), device_info.get("operator"), device_info.get("DeviceIdType"), device_info.get("operator_tag"), device_info.get("MSISDN"),
+                    device_info.get("action"),
+                    "", "", "", device_info.get("operator"),
+                    "", "", device_info.get("txn_id"), fileArray, device_info.get("period"), conn, bw);
+
+            output = RuleEngineApplication.startRuleEngine(re);
             logger.info("Rule End .." + device_info.get("rule_name") + "; Rule Output:" + output + " ;  Expected O/T : " + device_info.get("output"));
 
             new LogWriter().writeFeatureEvents(myWriter, device_info.get("IMEIESNMEID"),
@@ -195,7 +212,7 @@ public class RuleFilter {
                         device_info.get("txn_id"), device_info.get("operator"), device_info.get("file_name"), "RuleActionStart",
                         device_info.get("ruleid"), device_info.get("rule_name"), "", new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 
-                // Perform Action 
+                // Perform Action
                 String[] my_action_arr = {
                     device_info.get("rule_name"),
                     "2",
@@ -214,8 +231,14 @@ public class RuleFilter {
                     device_info.get("txn_id"),
                     fileArray
                 };
+                RuleInfo reAction = new RuleInfo("app", "aud", "rep", device_info.get("rule_name"), "executeAction", device_info.get("feature"), device_info.get("IMEIESNMEID"),
+                        device_info.get("SNofDevice"), device_info.get("file_name"),
+                        device_info.get("DeviceType"), device_info.get("operator"), device_info.get("DeviceIdType"), device_info.get("operator_tag"), device_info.get("MSISDN"),
+                        output.equalsIgnoreCase("NAN") ? "NAN" : device_info.get("action"),
+                        "", "", "", device_info.get("operator"),
+                        "", "", device_info.get("txn_id"), fileArray, device_info.get("period"), conn, bw);
 
-                action_output = RuleEngineApplication.startRuleEngine(my_action_arr, conn, bw);
+                action_output = RuleEngineApplication.startRuleEngine(reAction);
 //                errorFlag = 1;
                 try {
                     bw.flush();
@@ -232,7 +255,7 @@ public class RuleFilter {
 
                 if (device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")) {
                     rule_detail.put("rule_name", null);
-                    logger.info("failed_rule_aciton is Rule ..   ");  // if action FAils But next failed_rule_aciton is Rule , ..action _output  will not work ....         
+                    logger.info("failed_rule_aciton is Rule ..   ");  // if action FAils But next failed_rule_aciton is Rule , ..action _output  will not work ....
                 } else {
                     errorFlag = 1;
                     rule_detail.put("period", device_info.get("period"));
@@ -660,7 +683,7 @@ public class RuleFilter {
                 fileArray //15
             };
             logger.info(" Rule Execution Start" + Arrays.toString(my_arr));
-            output = RuleEngineApplication.startRuleEngine(my_arr, conn, bw);
+            //      output = RuleEngineApplication.startRuleEngine(my_arr, conn, bw);
             logger.info("Rule End .." + device_info.get("rule_name") + "; Rule Output:" + output + " ;  Expected O/T : " + device_info.get("output"));
 
             if (device_info.get("output").equalsIgnoreCase(output)) {    // go to next rule(  rule_engine _mapping )
@@ -685,7 +708,7 @@ public class RuleFilter {
                     fileArray
                 };
 
-                action_output = RuleEngineApplication.startRuleEngine(my_action_arr, conn, bw);
+                //     action_output = RuleEngineApplication.startRuleEngine(my_action_arr, conn, bw);
 //                errorFlag = 1;
                 logger.info("Rule Filter Action Output is [" + action_output + "]");
 
@@ -697,7 +720,7 @@ public class RuleFilter {
 
                 if (device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")) {
                     rule_detail.put("rule_name", null);
-                    logger.info("failed_rule_aciton is Rule ..   ");  // if action FAils But next failed_rule_aciton is Rule , ..action _output  will not work ....         
+                    logger.info("failed_rule_aciton is Rule ..   ");  // if action FAils But next failed_rule_aciton is Rule , ..action _output  will not work ....
                 } else {
                     errorFlag = 1;
                     rule_detail.put("period", device_info.get("period"));
@@ -753,7 +776,7 @@ public class RuleFilter {
 //					device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //					device_info.get("systemType"),
 //					device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckStart",
-//					device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//					device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
 //
 //
@@ -784,11 +807,11 @@ public class RuleFilter {
 //					device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //					device_info.get("systemType"),
 //					device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckEnd",
-//					device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//					device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
 //
 //			if(device_info.get("output").equalsIgnoreCase(output)){
-//				rule_detail.put("rule_name", null);				
+//				rule_detail.put("rule_name", null);
 //			}
 //			else{
 //				if(device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")){
@@ -804,9 +827,9 @@ public class RuleFilter {
 //							device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //							device_info.get("systemType"),
 //							device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionStart",
-//							device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//							device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
-//					// Perform Action 
+//					// Perform Action
 //					String [] my_action_arr = {device_info.get("rule_name"),
 //							"2",
 //							"CDR",
@@ -822,7 +845,7 @@ public class RuleFilter {
 //							device_info.get("servedMSISDN"),
 //							device_info.get("action")
 //					};
-//					action_output = rea.startRuleEngine(my_action_arr);					
+//					action_output = rea.startRuleEngine(my_action_arr);
 //					logger.info("Rule Filter Action Output is ["+action_output+"]");
 //
 //
@@ -830,13 +853,13 @@ public class RuleFilter {
 //							device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //							device_info.get("systemType"),
 //							device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionEnd",
-//							device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));									
+//							device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //					break;
 //				}
 //			}
 //
 //			//
-//			//		
+//			//
 //			//		rule_detail = checkMyRule(conn ,device_info);
 //			//		if(rule_detail.get("rule_name") != null ){
 //			//			logger.info("Rule Detials"+rule_detail+rule_detail.get("rule_name"));
@@ -865,7 +888,7 @@ public class RuleFilter {
 //						device_info.get("DeviceType"), device_info.get("MultipleSIMStatus"),device_info.get("SNofDevice"),
 //						device_info.get("Devicelaunchdate"),device_info.get("DeviceStatus"),
 //						device_info.get("txn_id"), device_info.get("operator"), device_info.get("file_name"), "RuleCheckStart",
-//						device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//						device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //			}catch(Exception e ) {
 //				logger.info(" rule filter exception getMyFeatureRule  +"  + e);
 //			}
@@ -899,14 +922,14 @@ public class RuleFilter {
 //						device_info.get("DeviceType"), device_info.get("MultipleSIMStatus"),device_info.get("SNofDevice"),
 //						device_info.get("Devicelaunchdate"),device_info.get("DeviceStatus"),
 //						device_info.get("txn_id"), device_info.get("operator"), device_info.get("file_name"), "RuleCheckEnd",
-//						device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//						device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
 //			}catch(Exception e ) {
 //				logger.info(" rule filter exception getMyFeatureRule 22  +"  + e);
 //			}
 //			logger.info( "" + device_info.get("output")    + "...  output "+  output);
 //			if(device_info.get("output").equalsIgnoreCase(output)){
-//				rule_detail.put("rule_name", null);				
+//				rule_detail.put("rule_name", null);
 //			}else{
 //				if(device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")){
 //					rule_detail.put("rule_name", null);
@@ -922,17 +945,17 @@ public class RuleFilter {
 //								device_info.get("DeviceType"), device_info.get("MultipleSIMStatus"),device_info.get("SNofDevice"),
 //								device_info.get("Devicelaunchdate"),device_info.get("DeviceStatus"),
 //								device_info.get("txn_id"), device_info.get("operator"), device_info.get("file_name"), "RuleActionStart",
-//								device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//								device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
 //					}catch(Exception e ) {
 //						logger.info(" rule filter exception getMyFeatureRule  +"  + e);
 //					}
 //
 //
-//					// Perform Action 
+//					// Perform Action
 //					String [] my_action_arr = {
 //							device_info.get("rule_name"),
-//							"2",                          //  executeaction 
+//							"2",                          //  executeaction
 //							device_info.get("feature"),
 //							device_info.get("IMEIESNMEID"),
 //							"0",
@@ -948,8 +971,8 @@ public class RuleFilter {
 //							device_info.get("txn_id")
 //					};
 //					logger.info(" Rule Action  Start.."+Arrays.toString(my_action_arr));
-//					
-//					action_output = rea.startRuleEngine(my_action_arr);					
+//
+//					action_output = rea.startRuleEngine(my_action_arr);
 //					logger.info("Rule Filter Action Output is ["+action_output+"]");
 //
 //					try {
@@ -957,7 +980,7 @@ public class RuleFilter {
 //								device_info.get("DeviceType"), device_info.get("MultipleSIMStatus"),device_info.get("SNofDevice"),
 //								device_info.get("Devicelaunchdate"),device_info.get("DeviceStatus"),
 //								device_info.get("txn_id"), device_info.get("operator"), device_info.get("file_name"), "RuleActionEnd",
-//								device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//								device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //					}catch(Exception e ) {
 //						logger.info(" rule filter exception getMyFeatureRule 44 +"  + e);
 //					}
@@ -967,7 +990,7 @@ public class RuleFilter {
 //			}
 //
 //			//
-//			//		
+//			//
 //			//		rule_detail = checkMyRule(conn ,device_info);
 //			//		if(rule_detail.get("rule_name") != null ){
 //			//			logger.info("Rule Detials"+rule_detail+rule_detail.get("rule_name"));
@@ -1022,7 +1045,7 @@ public class RuleFilter {
 //						else{
 //							rule_details.put("period" , device_info.get("period"));
 //							rule_details.put("action",device_info.get("action"));
-//							ruleFilterAction(conn,rule_details.get("action_type"),device_info);							
+//							ruleFilterAction(conn,rule_details.get("action_type"),device_info);
 //						}
 //					}
 //				}
@@ -1073,7 +1096,7 @@ public class RuleFilter {
 //				Scanner sc = new Scanner(is);
 //				if(sc.hasNext()){
 //					output =  sc.next();
-//				}			
+//				}
 //				logger.info("Output from Java API Rule Filter ["+output+"]");
 //
 //				logger.info("Complete command to call the java api output"+complete_api);
@@ -1096,7 +1119,7 @@ public class RuleFilter {
 //				stmt.close();
 //			} catch (SQLException e) {
 //				e.printStackTrace();
-//			}			
+//			}
 //		}
 //		return rule_details;
 //	}
@@ -1115,7 +1138,7 @@ public class RuleFilter {
 //
 //		try{
 //			stmt = conn.createStatement();
-//			rs=stmt.executeQuery(query);			
+//			rs=stmt.executeQuery(query);
 //			while(rs.next()){
 //
 //				my_rule_query = "select * from "+rs.getString("table_name")+" where ";
@@ -1130,13 +1153,13 @@ public class RuleFilter {
 //						operator = operators[i-1];
 //					}
 //					if(values[i].startsWith("hm.")){
-//						my_rule_query += " "+keys[i]+condition[i]+"'"+device_info.get(values[i].substring(3))+"' "+operator; 						
+//						my_rule_query += " "+keys[i]+condition[i]+"'"+device_info.get(values[i].substring(3))+"' "+operator;
 //					}
 //					else{
-//						my_rule_query += " "+keys[i]+condition[i]+"'"+values[i]+"' "+operator; 						
+//						my_rule_query += " "+keys[i]+condition[i]+"'"+values[i]+"' "+operator;
 //					}
 //				}
-//				logger.info("Query for DB check query ["+my_rule_query+"]");								
+//				logger.info("Query for DB check query ["+my_rule_query+"]");
 //				stmt1 = conn.createStatement();
 //				rs1 = stmt1.executeQuery(my_rule_query);
 //				if(rs1.next()){
@@ -1147,7 +1170,7 @@ public class RuleFilter {
 //						rule_details.put("rule_name", device_info.get("rule_name"));
 //						rule_details.put("rule_id", device_info.get("ruleid"));
 //					}
-//				}				
+//				}
 //			}
 //			logger.info("Final Rule Details for DB check Rule filter ["+query+"]");
 //
@@ -1187,8 +1210,8 @@ public class RuleFilter {
 //		String my_rule_query = "";
 //		try{
 //			stmtnorm = conn.createStatement();
-//			rsnorm=stmtnorm.executeQuery(query);			
-//			while(rsnorm.next()){				
+//			rsnorm=stmtnorm.executeQuery(query);
+//			while(rsnorm.next()){
 //				String[] keys = rsnorm.getString("param_key").split(",");
 //				String[] condition = rsnorm.getString("param_condition").split(",");
 //				String[] values = rsnorm.getString("param_value").split(",");
@@ -1204,7 +1227,7 @@ public class RuleFilter {
 //										parseMethod(
 //												device_info.get(keys[i].substring(3).substring(0,keys[i].substring(3).length()-4)),
 //												keys[i].substring(keys[i].length()-3 ,keys[i].length()))
-//										,condition[i],Integer.parseInt(values[i])); 
+//										,condition[i],Integer.parseInt(values[i]));
 //								logger.info("my_flag 1 ="+my_flag);
 //
 //							}
@@ -1217,7 +1240,7 @@ public class RuleFilter {
 //														keys[i].substring(keys[i].length()-3 ,keys[i].length()))
 //												,condition[i],Integer.parseInt(values[i]))
 //										);
-//							}							
+//							}
 //						}
 //						else{
 //						}
@@ -1240,7 +1263,7 @@ public class RuleFilter {
 //		catch(Exception e){
 //			logger.info("Exception ["+e+"]");
 //			e.printStackTrace();
-//		}	
+//		}
 //		finally{
 //			try {
 //				//				rs2.close();
@@ -1270,7 +1293,7 @@ public class RuleFilter {
 //				rs2 = stmt2.executeQuery(action_query);
 //				logger.info("Rule filter action query ["+action_query+"]");
 //				logger.info("NOrm check Action DB Query"+action_query);
-//				while(rs2.next()){		
+//				while(rs2.next()){
 //					String[] insert_keys = rs2.getString("param_key").split(",");
 //					String[] insert_values = rs2.getString("param_value").split(",");
 //					String action_insert_query = "insert into "+rs2.getString("context_path")+" (";
@@ -1282,7 +1305,7 @@ public class RuleFilter {
 //							values1 = values1+"'"+device_info.get(insert_values[j].substring(3))+"',";
 //						}
 //						else{
-//							values1 = values1 + "'"+insert_values[j]+"',";									
+//							values1 = values1 + "'"+insert_values[j]+"',";
 //						}
 //					}
 //					action_insert_query  = action_insert_query.substring( 0, action_insert_query.length() - 1 )+") "+values1.substring( 0, values1.length() - 1 )+")";
@@ -1291,7 +1314,7 @@ public class RuleFilter {
 //					stmt3.executeUpdate(action_insert_query);
 //					 // conn.commit();
 //
-//				}						
+//				}
 //			}
 //			else if(action_type.equals("java_api")){
 //				String action_query = "select * from rule_filter_action_db where rule_id='"+device_info.get("ruleid")+"'";
@@ -1299,7 +1322,7 @@ public class RuleFilter {
 //				logger.info("Query to java_api in rule filter action ["+action_query+"]");
 //				stmt2 = conn.createStatement();
 //				rs2 = stmt2.executeQuery(action_query);
-//				String output="";				
+//				String output="";
 //				while(rs2.next()){
 //					String complete_api = rs2.getString("context_path");
 //					String[] values = rs2.getString("param_value").split(",");
@@ -1313,7 +1336,7 @@ public class RuleFilter {
 //					Scanner sc = new Scanner(is);
 //					if(sc.hasNext()){
 //						output =  sc.next();
-//					}			
+//					}
 //					logger.info("Java API Output action"+output);
 //					logger.info("Java API Rule filter action["+output+"]");
 //
@@ -1356,7 +1379,7 @@ public class RuleFilter {
 //		}else if ("!=".equals(operator)) {
 //			logger.info(number1+"checking both number "+number2);
 //			return number1 != number2;
-//		} else { 
+//		} else {
 //			throw new IllegalArgumentException("Invalid operator");
 //		}
 //	}
@@ -1366,7 +1389,7 @@ public class RuleFilter {
 //		if ("len".equals(operator)) {
 //			logger.info("my imei length"+my_string.length()+my_string);
 //			return my_string.length();
-//		}  else { 
+//		}  else {
 //			throw new IllegalArgumentException("Invalid operator");
 //		}
 //	}
@@ -1379,7 +1402,7 @@ public class RuleFilter {
 //		else if("&&".equals(operator)){
 //			return param1 && param2;
 //		}
-//		else { 
+//		else {
 //			throw new IllegalArgumentException("Invalid operator");
 //		}
 //	}
@@ -1408,17 +1431,17 @@ public class RuleFilter {
 ////		device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 ////		device_info.get("systemType"),
 ////		device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckStart",
-////		device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+////		device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 ////
 ////new LogWriter().writeEvents(myWriter, device_info.get("servedIMEI"),
 ////		device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 ////		device_info.get("systemType"),
 ////		device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckEnd",
-////		device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+////		device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 ////
 ////
 ////if(device_info.get("output").equalsIgnoreCase(output)){
-////	rule_detail.put("rule_name", null);				
+////	rule_detail.put("rule_name", null);
 ////}
 ////else{
 ////	if(device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")){
@@ -1431,23 +1454,23 @@ public class RuleFilter {
 ////				device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 ////				device_info.get("systemType"),
 ////				device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionStart",
-////				device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
-////		
-////		// Perform Action 
-////		
-////		
+////				device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
+////
+////		// Perform Action
+////
+////
 ////		new LogWriter().writeEvents(myWriter, device_info.get("servedIMEI"),
 ////				device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 ////				device_info.get("systemType"),
 ////				device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionEnd",
-////				device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+////				device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 ////
-////		
+////
 ////		break;
 ////	}
 ////}
 ////
-//////rule_detail = checkMyRule(conn ,device_info);			
+//////rule_detail = checkMyRule(conn ,device_info);
 //////if(rule_detail.get("rule_name") != null ){
 //////	logger.info("Rule Detials"+rule_detail+rule_detail.get("rule_name"));
 //////	logger.info("Breaking the Rules");
@@ -1460,26 +1483,26 @@ public class RuleFilter {
 //			device_info.put("period", rule.period);
 //			device_info.put("action", rule.action);
 //			device_info.put("failed_rule_aciton", rule.failed_rule_aciton);
-//			
-//			
+//
+//
 ////			output = RuleEngineApplication.main();
-//			
-//			
+//
+//
 //			new LogWriter().writeEvents(myWriter, device_info.get("servedIMEI"),
 //					device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //					device_info.get("systemType"),
 //					device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckStart",
-//					device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
-//			
+//					device_info.get("ruleid"), device_info.get("rule_name"), "",new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
+//
 //			new LogWriter().writeEvents(myWriter, device_info.get("servedIMEI"),
 //					device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //					device_info.get("systemType"),
 //					device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleCheckEnd",
-//					device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//					device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
-//			
+//
 //			if(device_info.get("output").equalsIgnoreCase(output)){
-//				rule_detail.put("rule_name", null);				
+//				rule_detail.put("rule_name", null);
 //			}
 //			else{
 //				if(device_info.get("failed_rule_aciton").equalsIgnoreCase("rule")){
@@ -1492,23 +1515,23 @@ public class RuleFilter {
 //							device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //							device_info.get("systemType"),
 //							device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionStart",
-//							device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
-//					
-//					// Perform Action 
-//					
-//					
+//							device_info.get("ruleid"), device_info.get("rule_name"), output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
+//
+//					// Perform Action
+//
+//
 //					new LogWriter().writeEvents(myWriter, device_info.get("servedIMEI"),
 //							device_info.get("recordType"), device_info.get("servedIMSI"),device_info.get("servedMSISDN"),
 //							device_info.get("systemType"),
 //							device_info.get("operator"), device_info.get("file_name"), device_info.get("record_time"), "RuleActionEnd",
-//							device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));				
+//							device_info.get("ruleid"), device_info.get("rule_name"), action_output,new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
 //
-//					
+//
 //					break;
 //				}
 //			}
-//			
-////			rule_detail = checkMyRule(conn ,device_info);			
+//
+////			rule_detail = checkMyRule(conn ,device_info);
 ////			if(rule_detail.get("rule_name") != null ){
 ////				 // System.out.println("Rule Detials"+rule_detail+rule_detail.get("rule_name"));
 ////				 // System.out.println("Breaking the Rules");

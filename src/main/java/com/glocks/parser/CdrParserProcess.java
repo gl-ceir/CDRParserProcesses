@@ -5,39 +5,30 @@ import com.glocks.dao.MessageConfigurationDbDao;
 import com.glocks.dao.PolicyBreachNotificationDao;
 import com.glocks.db.ConnectionConfiguration;
 import com.glocks.files.FileList;
-//import static com.glocks.parser.CdrParserProcess.appdbName;
-//import static com.glocks.parser.CdrParserProcess.getFilePath;
-//import static com.glocks.parser.CdrParserProcess.logger;
-
-import java.io.File;
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
 import com.glocks.pojo.MessageConfigurationDb;
 import com.glocks.pojo.PolicyBreachNotification;
 import com.glocks.util.Util;
 import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
-
+import java.sql.*;
 import java.text.DateFormat;
-import java.time.LocalDate;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
@@ -59,11 +50,13 @@ public class CdrParserProcess {
     static StackTraceElement stackTraceElement = new Exception().getStackTrace()[0];
     static String appdbName = null;
     static String auddbName = null;
+    static String repdbName = null;
     static String serverName = null;
     static String dateFunction = null;
     public static PropertiesReader propertiesReader = null;
     static ConnectionConfiguration connectionConfiguration = null;
     static Connection conn = null;
+
     public static void main(String args[]) { // OPERATOR FilePath
 
         ApplicationContext context = SpringApplication.run(CdrParserProcess.class, args);
@@ -72,9 +65,10 @@ public class CdrParserProcess {
         logger.info("connectionConfiguration :" + connectionConfiguration.getConnection().toString());
 
         //  conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
-         conn = connectionConfiguration.getConnection();
+        conn = connectionConfiguration.getConnection();
         appdbName = propertiesReader.appdbName;
         auddbName = propertiesReader.auddbName;
+        repdbName = propertiesReader.repdbName;
         serverName = propertiesReader.serverName;
         dateFunction = Util.defaultDateNow(conn.toString().contains("oracle"));
         logger.info(" appdbName:" + appdbName);
@@ -261,7 +255,7 @@ public class CdrParserProcess {
                     if (device_info.get("MSISDN").startsWith(propertiesReader.localMsisdnStartSeries) && device_info.get("IMSI").startsWith(propertiesReader.localISMIStartSeries)) {
                         logger.debug("Local Sim  " + Arrays.toString(data));
                         device_info.put("msisdn_type", "LocalSim");
-                        my_rule_detail = rule_filter.getMyRule(conn, device_info, rulelist);
+                        my_rule_detail = rule_filter.getMyRule(conn, device_info, rulelist, appdbName, auddbName, repdbName);
                         logger.debug("getMyRule done with rule name " + my_rule_detail.get("rule_name") + " rule ID " + my_rule_detail.get("rule_id"));
                         if (my_rule_detail.get("rule_name") != null) {
                             failed_rule_name = my_rule_detail.get("rule_name");
@@ -313,7 +307,7 @@ public class CdrParserProcess {
                     logger.debug("Going To Insert /Update as Per Conditions for " + device_info.get("msisdn_type"));
                     output = checkDeviceUsageDB(conn, device_info.get("modified_imei"), device_info.get("MSISDN"), device_info.get("imei_arrival_time"), device_info.get("msisdn_type"), device_info);
                     if (output == 0) { // imei not found in usagedb
-                              logger.debug("imei not found in usagedb");
+                        logger.debug("imei not found in usagedb");
                         my_query = getInsertUsageDbQuery(device_info, dateFunction, failed_rule_name, failed_rule_id, period, finalAction, failedRuleDate, server_origin, gsmaTac);
                         if (device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")) {
                             usageInsert++;
@@ -338,7 +332,7 @@ public class CdrParserProcess {
                             usageUpdateForeign++;
                         }
                     } else if (output == 2) { // imei found with different msisdn
-                              logger.debug("imei found with different msisdn");
+                        logger.debug("imei found with different msisdn");
                         output = checkDeviceDuplicateDB(conn, device_info.get("modified_imei"), device_info.get("MSISDN"), device_info.get("imei_arrival_time"), device_info.get("msisdn_type"), device_info);
                         switch (output) {
                             case 0:
@@ -439,7 +433,6 @@ public class CdrParserProcess {
                 + "', imsi = '" + device_info.get("IMSI") + "'  , is_used = '" + device_info.get("isUsedFlag") + "'   , test_imei = '" + device_info.get("testImeiFlag") + "'      where imei ='" + device_info.get("modified_imei") + "'  ";
     }
 
-
     private static String getInsertDuplicateDbQuery(HashMap<String, String> device_info, String dateFunction, String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate, String server_origin, String gsmaTac) {
         String dbName
                 = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
@@ -469,6 +462,7 @@ public class CdrParserProcess {
                 + "',update_source ='" + device_info.get("source") + "',update_imei_arrival_time= " + defaultStringtoDate(device_info.get("imei_arrival_time")) + ",server_origin='" + server_origin + "'      ,action='"
                 + finalAction + "'  ,is_used='" + device_info.get("isUsedFlag") + "'   , test_imei = '" + device_info.get("testImeiFlag") + "'       , imsi = '" + device_info.get("IMSI") + "'    where msisdn='" + device_info.get("MSISDN") + "'  and imei='" + device_info.get("modified_imei") + "'";
     }
+
     private static String getUpdateDuplicateDbQuery(HashMap<String, String> device_info, String dateFunction, String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate, String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
                 ? "" + appdbName + ".active_imei_with_different_msisdn"
@@ -651,7 +645,6 @@ public class CdrParserProcess {
         return rule_details;
     }
 
-
     private static Map getActualOperator(Connection conn) {
         Map<String, String> operatorSeries = new HashMap<String, String>();
         String query = "select  series_start, operator_name from " + appdbName + ".operator_series";
@@ -679,7 +672,6 @@ public class CdrParserProcess {
         }
         return value;
     }
-
 
     static void cdrFileDetailsUpdate(Connection conn, String operator, String fileName, int usageInsert, int usageUpdate, int duplicateInsert, int duplicateUpdate, int nullInsert, int nullUpdate, Date P2StartTime, Date P2EndTime, String source, int counter, String raw_cdr_file_name,
             int foreignMsisdn, String server_origin, int usageInsertForeign, int usageUpdateForeign, int duplicateInsertForeign, int duplicateUpdateForeign, int errorCount) {
@@ -1020,7 +1012,6 @@ public class CdrParserProcess {
 //            logger.error("[Query]" + value + " []" + stackTraceElement.getClassName() + "/" + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber() + e);
 //        }
 //    }
-
 //private static void insertTestImei(Connection conn, HashMap<String, String> device_info) {
 //        String qur = null;
 //        try (Statement stmt = conn.createStatement();) {
@@ -1033,7 +1024,6 @@ public class CdrParserProcess {
 //            logger.error("Error " + e + "[Query]" + qur);
 //        }
 //    }
-
 //    private static HashMap getIsUsedDevice(Connection conn, String tac) {
 //        String timePeriod = getSystemConfigDetailsByTag(conn, "IS_USED_EXTENDED_DAYS");
 //        logger.info("Time Period in days  : ----" + timePeriod);
