@@ -7,6 +7,7 @@ import com.glocks.db.ConnectionConfiguration;
 import com.glocks.files.FileList;
 import com.glocks.pojo.MessageConfigurationDb;
 import com.glocks.pojo.PolicyBreachNotification;
+import com.glocks.service.AlertService;
 import com.glocks.util.Util;
 import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
 import java.io.BufferedReader;
@@ -225,17 +226,8 @@ public class CdrParserProcess {
                     device_info.put("modified_imei", data[0].length() > 14 ? data[0].substring(0, 14) : data[0]);
                     device_info.put("tac", data[0].length() > 8 ? data[0].substring(0, 8) : data[0]);
                     logger.debug("modified_imei is  " + device_info.get("modified_imei"));
-                    String imei_arrivalTime = null;
-                    dateType = "yyyyMMdd";
-                    if (propertiesReader.ddMMyyyySource.contains(data[5].trim())) {
-                        dateType = "ddMMyyyy";
-                    } else if (propertiesReader.yyMMddSource.contains(data[5].trim())) {
-                        dateType = "yyMMdd";
-                    } else if (propertiesReader.ddMMyySource.contains(data[5].trim())) {
-                        dateType = "ddMMddyy";
-                    }
-                    imei_arrivalTime = new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat(dateType).parse(data[7]));
-                    device_info.put("imei_arrival_time", imei_arrivalTime);
+                   // String imei_arrivalTime = data[7];
+                    device_info.put("imei_arrival_time", data[7]);
                     device_info.put("operator", operator.trim());
                     device_info.put("record_time", sdfTime);
                     device_info.put("operator_tag", operator_tag);
@@ -383,6 +375,8 @@ public class CdrParserProcess {
             updateModuleAudit(conn, 200, "Success", "", insertedKey, executionStartTime, fileCount, errorCount);
         } catch (Exception e) {
             logger.error("Errors " + stackTraceElement.getClassName() + "/" + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber() + e);
+            new AlertService().raiseAnAlertJar("alert1111", "" + e.getLocalizedMessage(), "P3_" + operator + "_" + source, 0);
+
             updateModuleAudit(conn, 500, "Failure", e.getLocalizedMessage(), insertedKey, executionStartTime, fileCount, errorCount);
         } finally {
             try {

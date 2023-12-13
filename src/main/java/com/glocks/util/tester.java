@@ -1,30 +1,11 @@
 package com.glocks.util;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-
-import java.time.LocalDateTime;
-import java.time.Month;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class tester {
 
@@ -40,8 +21,11 @@ class tester {
         String outputFile = "";
 
         String line = null;
+        String dateType = "yyyyMMdd";
         try {
+            String imei_arrivalTime = new SimpleDateFormat("yyyy-MM-dd").format(new SimpleDateFormat(dateType).parse("2023-11-29"));
 
+            System.out.println("List 3: " + imei_arrivalTime);
             // Read file With Cdr Style  in Java 8
 //            try (Stream<String> lineStream = Files.lines(Paths.get(file))) {
 //                for (String lines : (Iterable<String>) () -> lineStream.iterator()) {
@@ -59,25 +43,22 @@ class tester {
 //                for (String s : str.split(",")) {
 //                    list.add(s);
 //                }
-
                 //     List list = stream.map(str -> str.split(",")).collect(Collectors.toList());
-
 //                System.out.println("List Size : " + list.size());
 //                System.out.println("List 1: " + list.get(0).toString());
 //                System.out.println("List 2: " + list.get(1).toString());
 //                System.out.println("List 3: " + list.get(3).toString());
-
             }
 
 //            FileReader fr = new FileReader(file);   // to read the file
 //            BufferedReader br = new BufferedReader(fr); // to read the lines in file
-            FileWriter fw = new FileWriter(outputFile);
-            BufferedReader br = new BufferedReader(new FileReader(file));
-
-            while ((line = br.readLine()) != null) {
-                String[] data = line.split(",", -1);
-                fw.write(Arrays.toString(data));
-            }
+//            FileWriter fw = new FileWriter(outputFile);
+//            BufferedReader br = new BufferedReader(new FileReader(file));
+//
+//            while ((line = br.readLine()) != null) {
+//                String[] data = line.split(",", -1);
+//                fw.write(Arrays.toString(data));
+//            }
         } catch (Exception ex) {
 
         }
