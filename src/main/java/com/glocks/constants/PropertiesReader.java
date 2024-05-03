@@ -46,5 +46,15 @@ public class PropertiesReader {
   public List<String> ddMMyyyySource;
 
   @Value("${yyyyMMddSource}")
-  public String yyyyMMddSource;
+    public String yyyyMMddSource;
+
+    @Value("${comma-delimitor}")
+    public String commaDelimiter;
+
+    @Value("${localMsisdnStartSeries}")
+    public String localMsisdnStartSeries;
+
+    @Value("${localISMIStartSeries}")
+    public String localISMIStartSeries;
+
 }

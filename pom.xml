@@ -11,21 +11,30 @@
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.gl.ceir</groupId>
-    <artifactId>EIRSCdrParserM</artifactId>
+    <artifactId>EtlCdrParser</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
-    <name>EirsCdrParser</name>
+    <name>EtlCdrParser</name>
 	 
     <properties>
         <start-class>com.glocks.parser.CdrParserProcess</start-class>
+        <java.version>11</java.version>
+        <log4j2.version>2.20.0</log4j2.version>
     </properties>
+
   
     <dependencies>
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-        </dependency>
+                </dependency>
 
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc10</artifactId>
+            <version>19.3.0.0</version>
+        </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -55,28 +64,34 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.ulisesbocchio</groupId>
-            <artifactId>jasypt-spring-boot</artifactId>    
-            <version>2.0.0</version>
+                  <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot</artifactId>    <!--  IF NOT WORKING MIGHT BE   -spring-boot-starter?-->
+            <version>1.18</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.6</version>
+            <type>jar</type>
         </dependency>
 
-        <dependency>
+        <!--        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.20.0</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.20.0</version>
-        </dependency>
+        </dependency>-->
 
     </dependencies>
    
 
     <build>
-        <finalName>EirsCdrParser</finalName>
+        <finalName>EtlCdrParser</finalName>
        
         <plugins>
             <plugin>
