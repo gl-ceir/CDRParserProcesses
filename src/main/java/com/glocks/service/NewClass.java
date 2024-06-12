@@ -8,15 +8,13 @@ package com.glocks.service;
 import static com.glocks.service.GsmaInvalidUpdate.logger;
 
 import com.glocks.parser.CEIRFeatureFileFunctions;
-import com.glocks.util.Util;
-import java.io.BufferedWriter;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 
 /**
  *
@@ -28,7 +26,7 @@ public class NewClass {
 
           Connection conn = null;
           logger.info(" GsmaInvalidUpdate.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+          conn = (Connection) new com.glocks.configuration.MySQLConnection().getConnection();
           GsmaInvalidUpdateServcImpl(conn);
           System.exit(0);
      }

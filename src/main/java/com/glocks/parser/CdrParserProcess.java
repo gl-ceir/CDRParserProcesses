@@ -1,35 +1,15 @@
 package com.glocks.parser;
 
+import com.glocks.configuration.ConnectionConfiguration;
 import com.glocks.constants.PropertiesReader;
 import com.glocks.dao.MessageConfigurationDbDao;
 import com.glocks.dao.PolicyBreachNotificationDao;
-import com.glocks.db.ConnectionConfiguration;
 import com.glocks.files.FileList;
 import com.glocks.pojo.MessageConfigurationDb;
 import com.glocks.pojo.PolicyBreachNotification;
 import com.glocks.service.AlertService;
 import com.glocks.util.Util;
 import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.OutputStreamWriter;
-import java.nio.file.Files;
-import java.sql.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
@@ -38,6 +18,17 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.EnableAsync;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 @EnableAsync
 @SpringBootConfiguration
@@ -57,6 +48,15 @@ public class CdrParserProcess {
     public static PropertiesReader propertiesReader = null;
     static ConnectionConfiguration connectionConfiguration = null;
     static Connection conn = null;
+
+    static int usageInsert = 0;
+    static int usageUpdate = 0;
+    static int duplicateInsert = 0;
+    static int duplicateUpdate = 0;
+    static int usageInsertForeign = 0;
+    static int usageUpdateForeign = 0;
+    static int duplicateInsertForeign = 0;
+    static int duplicateUpdateForeign = 0;
 
     public static void main(String args[]) { // OPERATOR FilePath
 
@@ -84,7 +84,6 @@ public class CdrParserProcess {
             filePath += "/";
         }
         try {
-
             CdrParserProces(conn, filePath);
         } catch (Exception e) {
             try {
@@ -150,15 +149,7 @@ public class CdrParserProcess {
         String failed_rule_name = "";
         int failed_rule_id = 0;
         String finalAction = "";
-        int usageInsert = 0;
-        int usageUpdate = 0;
-        int duplicateInsert = 0;
-        int duplicateUpdate = 0;
 
-        int usageInsertForeign = 0;
-        int usageUpdateForeign = 0;
-        int duplicateInsertForeign = 0;
-        int duplicateUpdateForeign = 0;
 
         int nullInsert = 0;
         int nullUpdate = 0;
@@ -226,7 +217,6 @@ public class CdrParserProcess {
                     device_info.put("modified_imei", data[0].length() > 14 ? data[0].substring(0, 14) : data[0]);
                     device_info.put("tac", data[0].length() > 8 ? data[0].substring(0, 8) : data[0]);
                     logger.debug("modified_imei is  " + device_info.get("modified_imei"));
-                   // String imei_arrivalTime = data[7];
                     device_info.put("imei_arrival_time", data[7]);
                     device_info.put("operator", operator.trim());
                     device_info.put("record_time", sdfTime);
@@ -355,7 +345,8 @@ public class CdrParserProcess {
                     }
                     logger.info("query : " + my_query);
                     if (my_query.contains("insert")) {
-                        executorService.execute(new InsertDbDao(conn, my_query));
+                       insertIntoTable(conn, my_query);
+                        // executorService.execute(new InsertDbDao(conn, my_query));
                     } else {
                         logger.info(" writing query in file== " + my_query);
                         bw1.write(my_query + ";");
@@ -387,6 +378,7 @@ public class CdrParserProcess {
             }
         }
     }
+
 
     private static String getInsertUsageDbQuery(HashMap<String, String> device_info, String dateFunction, String failed_rule_name, int failed_rule_id, String period, String finalAction, String failedRuleDate, String server_origin, String gsmaTac) {
         String dbName = device_info.get("msisdn_type").equalsIgnoreCase("LocalSim")
@@ -639,6 +631,14 @@ public class CdrParserProcess {
         return rule_details;
     }
 
+    public static void insertIntoTable(Connection conn, String query) {
+        try (Statement stmtNew = conn.createStatement()) {
+            stmtNew.executeUpdate(query);
+        } catch (Exception e) {
+            logger.error("[]" + query + "[] Error occured inserting query  -- " + e.getLocalizedMessage() + "At ---" + e);
+        }
+    }
+
     private static Map getActualOperator(Connection conn) {
         Map<String, String> operatorSeries = new HashMap<String, String>();
         String query = "select  series_start, operator_name from " + appdbName + ".operator_series";
@@ -873,7 +873,7 @@ public class CdrParserProcess {
         String timePeriod = getSystemConfigDetailsByTag(conn, "IS_USED_EXTENDED_DAYS");
         logger.info("Time Period in days  : ----" + timePeriod);
         Calendar calendar = Calendar.getInstance();
-        String query = "select device_id , allocation_date from " + appdbName + ".mobile_device_repository ";
+        String query = "select device_id , allocation_date from " + appdbName + ".mobile_device_repository   ";
         logger.info("Query ----" + query);
         // Get the new date after adding 50 days
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query);) {

@@ -22,7 +22,7 @@ public class CEIRFeatureFileParser {
 
     public static void main(String args[]) {
         Connection conn = null;
-        conn = new com.glocks.db.MySQLConnection().getConnection();
+        conn = new com.glocks.configuration.MySQLConnection().getConnection();
 //          cEIRFeatureFileParser(conn);
     }
 
@@ -235,7 +235,7 @@ public class CEIRFeatureFileParser {
         String user_id = null;
 
         try {
-            query = "select request_type ,source_type  ,complaint_type  ,txn_id ,user_id from stolenand_recovery_mgmt   where txn_id = '"
+            query = "select request_type ,source_type  ,complaint_type  ,txn_id ,user_id from STOLEN_AND_RECOVERY_TXN   where txn_id = '"
                     + txn_id + "'";
             logger.info("Query   " + query);
             stmt = conn.createStatement();

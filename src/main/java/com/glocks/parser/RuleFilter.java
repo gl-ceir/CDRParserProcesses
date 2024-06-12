@@ -3,23 +3,21 @@ package com.glocks.parser;
 import com.gl.rule_engine.RuleEngineApplication;
 import com.gl.rule_engine.RuleInfo;
 import com.glocks.log.LogWriter;
-import static com.glocks.parser.CdrParserProcess.appdbName;
-import static com.glocks.parser.CdrParserProcess.auddbName;
-import static com.glocks.parser.CdrParserProcess.defaultStringtoDate;
-import static com.glocks.parser.CdrParserProcess.repdbName;
 import com.glocks.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStream;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Scanner;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.*;
+
+import static com.glocks.parser.CdrParserProcess.*;
 
 public class RuleFilter {
 
@@ -39,22 +37,7 @@ public class RuleFilter {
             device_info.put("period", rule.period);
             device_info.put("action", rule.action);
             device_info.put("failed_rule_aciton", rule.failed_rule_aciton);
-            String[] my_arr = {device_info.get("rule_name"), //0
-                "executeRule", //1
-                "CDR", //  2
-                // (device_info.get("rule_name").equals("IMEI_LUHN_CHECK") || device_info.get("rule_name").equals("IMEI_LENGTH")) ? device_info.get("IMEI") : device_info.get("IMEI").substring(0, 1 4), //3
-                device_info.get("IMEI").length() > 14 ? device_info.get("IMEI").substring(0, 14) : device_info.get("IMEI"),
-                "0", //4
-                device_info.get("file_name"), //5
-                "0", //6
-                device_info.get("record_time"), //7
-                device_info.get("operator"), //8
-                "", //9
-                device_info.get("operator_tag"), // 10     GSM/CDMA
-                device_info.get("period"), //11
-                device_info.get("MSISDN"), //12
-                device_info.get("action") //13
-        };
+
             try {
 
                 RuleInfo re = new RuleInfo(appDbName, audDbName, repDbName, device_info.get("rule_name"), "executeRule", "CDR", device_info.get("IMEI"), "0", device_info.get("IMEI").length() > 14 ? device_info.get("IMEI").substring(0, 14) : device_info.get("IMEI"),
@@ -72,30 +55,7 @@ public class RuleFilter {
             if (device_info.get("output").equalsIgnoreCase(output)) {
                 rule_detail.put("rule_name", null);
             } else {
-                String[] my_action_arr = {
-                    device_info.get("rule_name"), //0  ruleName
-                    "executeAction", //1   executeRuleExecuteAction
-                    "CDR", //2   FeatureName
-                    device_info.get("IMEI"), //3   imei
-                    "0", //4
-                    device_info.get("file_name"), //5        fileName
-                    "0", //6
-                    device_info.get("record_time"), //7      recordTime
-                    device_info.get("operator"), //8       operator
-                    "error", //9
-                    device_info.get("operator_tag"), //10   operatorTag GSMA/CDMA
-                    device_info.get("period"), //11        peroid
-                    device_info.get("MSISDN"), //12         msisdn
-                    device_info.get("action"), //13       action
-                    device_info.get("IMSI"), //1 4         imsi
-                    device_info.get("record_type"), //15  recordType
-                    device_info.get("system_type"), //16  systemType
-                    device_info.get("source"), //17       source
-                    device_info.get("raw_cdr_file_name"), //18 rawCdrFileName
-                    device_info.get("imei_arrival_time"), //19 imeiArrivalTime
-                    device_info.get("operator"), //20           operator
-                    device_info.get("file_name") //21         fileName
-                };
+
 
                 RuleInfo re = new RuleInfo(appdbName, auddbName, repdbName, device_info.get("rule_name"), "executeAction", "CDR", device_info.get("IMEI"), "0", device_info.get("file_name"),
                         "0", device_info.get("operator"), "error", device_info.get("operator_tag"), device_info.get("MSISDN"), device_info.get("action"),

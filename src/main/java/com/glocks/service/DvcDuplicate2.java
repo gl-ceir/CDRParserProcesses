@@ -7,7 +7,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.logging.Level;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +23,7 @@ public class DvcDuplicate2 {
 
           Connection conn = null;
           logger.info(" DvcDuplicate2.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+          conn = (Connection) new com.glocks.configuration.MySQLConnection().getConnection();
           ImeiDetailsReportServcImpl(conn);
           System.exit(0);
      }

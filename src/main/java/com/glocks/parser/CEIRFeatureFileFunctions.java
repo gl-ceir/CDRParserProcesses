@@ -74,7 +74,7 @@ public class CEIRFeatureFileFunctions {
         }
 
         try {
-            query = "select * from feature_mapping_db where  feature='" + feature + "'  " + addQuery + "    " + limiter
+            query = "select * from FEATURE_TABLE_MAPPING where  feature='" + feature + "'  " + addQuery + "    " + limiter
                     + "   ";
             logger.info("Query to get  (tFILEFUNCTIONgetFeatureMapping) File Details [" + query + "]");
 
@@ -491,7 +491,7 @@ public class CEIRFeatureFileFunctions {
         try {
             ValImei = ValImei.substring(0, 14);
             stmt = conn.createStatement();
-            qury = " delete from greylist_db where imei= '" + ValImei + "' ";
+            qury = " delete from GREY_LIST where imei= '" + ValImei + "' ";
             logger.info("  " + qury);
             stmt.executeUpdate(qury);
             qury = " delete from black_list where imei  = '" + ValImei + "'  ";
