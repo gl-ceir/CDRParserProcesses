@@ -149,8 +149,6 @@ public class CdrParserProcess {
         String failed_rule_name = "";
         int failed_rule_id = 0;
         String finalAction = "";
-
-
         int nullInsert = 0;
         int nullUpdate = 0;
         File file = null;
@@ -184,24 +182,18 @@ public class CdrParserProcess {
             Date p2Starttime = new Date();
             HashMap<String, String> device_info = new HashMap<String, String>();
             RuleFilter rule_filter = new RuleFilter();
-            // CDR File Writer
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date date = new Date();
             String sdfTime = sdf.format(date);
-
             logger.debug("fileParseLimit " + fileParseLimit);
             // for (int i = 0; i <= fileParseLimit; i++) {
             br.readLine();
-
-            // counter++;
-            // }
-            @SuppressWarnings("unchecked")
             Map<String, String> operatorSeries = getActualOperator(conn);
             String[] testImies = getTestImeis(conn).split(",");
             HashMap<String, Date> validTacMap = getValidTac(conn);
             String dateType = null;
+            String oldimei = "0";
             while ((line = br.readLine()) != null) {
-                //  data = line.split(",", -1);
                 data = line.split(propertiesReader.commaDelimiter, -1);
 
                 logger.info(" Line Started " + Arrays.toString(data));
@@ -287,6 +279,11 @@ public class CdrParserProcess {
                         device_info.put("isUsedFlag", "false");
                     }
                     logger.debug("Going To Insert /Update as Per Conditions for " + device_info.get("msisdn_type"));
+
+                    if (oldimei.equalsIgnoreCase(device_info.get("modified_imei"))) {
+                        Thread.sleep(150);
+                    }
+                    oldimei = device_info.get("modified_imei");
                     output = checkDeviceUsageDB(conn, device_info.get("modified_imei"), device_info.get("MSISDN"), device_info.get("imei_arrival_time"), device_info.get("msisdn_type"), device_info);
                     if (output == 0) { // imei not found in usagedb
                         logger.debug("imei not found in usagedb");
@@ -345,8 +342,8 @@ public class CdrParserProcess {
                     }
                     logger.info("query : " + my_query);
                     if (my_query.contains("insert")) {
-                       insertIntoTable(conn, my_query);
-                        // executorService.execute(new InsertDbDao(conn, my_query));
+                       //  insertIntoTable(conn, my_query); // oracle
+                         executorService.execute(new InsertDbDao(conn, my_query));
                     } else {
                         logger.info(" writing query in file== " + my_query);
                         bw1.write(my_query + ";");

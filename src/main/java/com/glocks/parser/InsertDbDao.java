@@ -55,24 +55,4 @@ public class InsertDbDao implements Runnable {
         }
     }
 
-    public void run1() {
-        logger.info("[RUNNABLE Query]" + query);
-        try (Statement stmtNew = conn.createStatement()) {
-            stmtNew.executeUpdate(query);
-        } catch (SQLIntegrityConstraintViolationException e) {
-           if( checkIfPresentINDup(conn, map))
-           {   }else{}
-
-        } catch (Exception e) {
-            logger.error("[]" + query + "[] Error occured in Thread while inserting query  -- " + e.getLocalizedMessage() + "At ---" + e);
-        }
-    }
-
-
-
-
-    private boolean checkIfPresentINDup(Connection conn, Map<String, String> map) {
-        return false;
-    }
-
 }
