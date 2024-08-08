@@ -29,13 +29,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
 //Etl-Class
 
 public class HexFileReader {
@@ -80,7 +77,7 @@ public class HexFileReader {
                 values = values + "?,";
             }
             query = query.substring(0, query.length() - 1) + ") " + values.substring(0, values.length() - 1) + ")";
-            conn = new com.glocks.db.MySQLConnection().getConnection();
+            conn = new com.glocks.configuration.MySQLConnection().getConnection();
             ps = conn.prepareStatement(query);
             for (int j = 0; j < fileData.get(fields[0]).size(); j++) {
                 for (int i = 0; i < fields.length; i++) {
@@ -376,7 +373,7 @@ public class HexFileReader {
             String qry = " select quantity, device_quantity from  " + main_type.trim().toLowerCase() + "_mgmt where txn_id  = '" + txn_id + "'";
             if (main_type.equalsIgnoreCase("Stolen") || main_type.equalsIgnoreCase("Recovery")
                     || main_type.equalsIgnoreCase("Block") || main_type.equalsIgnoreCase("Unblock")) {
-                qry = "  select  quantity, device_quantity from stolenand_recovery_mgmt  where txn_id  = '" + txn_id + "'  ";
+                qry = "  select  quantity, device_quantity from STOLEN_AND_RECOVERY_TXN  where txn_id  = '" + txn_id + "'  ";
             }
             new FeatureForSingleStolenBlock().deleteFromRawTable(conn, txn_id, main_type);
             ResultSet resul5 = st5.executeQuery(qry);
@@ -1471,7 +1468,7 @@ public class HexFileReader {
     public boolean insertSlotStartAndEndSnoId(Connection conn, String cdrStartTime, int eStartId, int eEndId) {
         boolean result = false;
         try {
-            result = new com.glocks.db.Query().insert(conn,
+            result = new com.glocks.configuration.Query().insert(conn,
                     "insert into zte_id_details(cdr_start_time,e_start_id,e_end_id) values('" + cdrStartTime + "',"
                     + eStartId + "," + eEndId + ")");
         } catch (Exception ex) {

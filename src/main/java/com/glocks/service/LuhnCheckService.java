@@ -12,7 +12,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.logging.Level;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,7 +25,7 @@ public class LuhnCheckService {
 
           Connection conn = null;
           logger.info(" LuhnCheckService.class");
-          conn = (Connection) new com.glocks.db.MySQLConnection().getConnection();
+          conn = (Connection) new com.glocks.configuration.MySQLConnection().getConnection();
           luhnCheckServcImpl(conn);
           System.exit(0);
      }

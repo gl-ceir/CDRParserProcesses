@@ -1,4 +1,4 @@
-package com.glocks.db;
+package com.glocks.configuration;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -8,7 +8,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 import org.springframework.orm.jpa.EntityManagerFactoryInfo;
-import org.springframework.stereotype.Repository;
 
 @Repository
 public class ConnectionConfiguration {

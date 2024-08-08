@@ -52,7 +52,7 @@ public class DeleteFromBlackList {
      private static void deleteProcess(Connection conn) {
           Statement stmt = null;
 //          String raw_query = "delete  from black_list   where CREATED_ON <  ( current_timestamp  - ( select value  from system_configuration_db where tag = 'GSMA_BL_MAX_RETENTION_PERIOD_DAYS_IN_DB'  )   ) ";
-          String raw_query = "delete  from BLACKLIST_IMEI_DB   where CREATED_ON <  ( current_timestamp  - ( select value  from system_configuration_db where tag = 'GSMA_BL_MAX_RETENTION_PERIOD_DAYS_IN_DB'  )   ) ";
+          String raw_query = "delete  from blacklist_imei_details   where CREATED_ON <  ( current_timestamp  - ( select value  from system_configuration_db where tag = 'GSMA_BL_MAX_RETENTION_PERIOD_DAYS_IN_DB'  )   ) ";
           try {
                logger.info(" " + raw_query);
                stmt = conn.createStatement();

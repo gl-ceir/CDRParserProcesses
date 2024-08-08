@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 
 import org.apache.logging.log4j.LogManager;import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.Logger;
 
 import com.glocks.util.Util;
 import java.io.File;
@@ -26,7 +25,7 @@ public class CEIRFeatureFileUploader {
 
     public static void main(String[] args) {
         logger.info(" CEIRFeatureFileUploader.class");
-        Connection conn = new com.glocks.db.MySQLConnection().getConnection();
+        Connection conn = new com.glocks.configuration.MySQLConnection().getConnection();
         HexFileReader hfr = new HexFileReader();
         String basePath = "";
         String complete_file_path = "";
@@ -361,7 +360,7 @@ public class CEIRFeatureFileUploader {
             rs = stmt.executeQuery(query);
             while (rs.next()) {
 
-                query = "insert into   greylist_db_history ( EXPIRY_DATE, modified_on ,  created_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type ,operation    , operator_id , operator_name  ,actual_imei , DEVICE_ID_type  , DEVICE_TYPE  )   "
+                query = "insert into   GREY_LIST_HISTORY ( EXPIRY_DATE, modified_on ,  created_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type ,operation    , operator_id , operator_name  ,actual_imei , DEVICE_ID_type  , DEVICE_TYPE  )   "
                         + "values(   " + expdate + " , " + dateFunction + ",   " + dateFunction + ",    " + "'" + rs.getString("imei_esn_meid")
                         + "'," + " ( select username from users where users.id=  "
                         + rs.getString("user_id") + "  )  ,  " + " '" + txn_id + "', " + "'"
@@ -385,7 +384,7 @@ public class CEIRFeatureFileUploader {
                 }
 
                 try {
-                    query = "delete from greylist_db where imei  = '" + rs.getString("imei_esn_meid") + "' ";
+                    query = "delete from GREY_LIST where imei  = '" + rs.getString("imei_esn_meid") + "' ";
                     logger.info(" ___ " + query);
                     stmt3.executeUpdate(query);
 
@@ -449,7 +448,7 @@ public class CEIRFeatureFileUploader {
             while (rs.next()) {
 //                    {
 //                         if (stolnRcvryDetails.get("operation").equals("0")) {
-                device_greylist_db_qry = "insert into   greylist_db (EXPIRY_DATE,created_on ,modified_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type , operator_id , operator_name ,actual_imei , DEVICE_ID_type  , DEVICE_TYPE  )   "
+                device_greylist_db_qry = "insert into   GREY_LIST (EXPIRY_DATE,created_on ,modified_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type , operator_id , operator_name ,actual_imei , DEVICE_ID_type  , DEVICE_TYPE  )   "
                         + "values(  " + expdate + "    ,  " + dateFunction + ",    " + dateFunction + "," + "'" + rs.getString("imei_esn_meid")
                         + "'," + " ( select username from users where users.id=  "
                         + rs.getString("user_id") + "  )  ,  " + " '" + txnId + "', " + "'"
@@ -457,7 +456,7 @@ public class CEIRFeatureFileUploader {
                         + "'," + "   ( select USERTYPE_NAME from usertype  where ID = (select  usertype_id from users where id =  " + rs.getString("user_id") + "  ) )     ," + "'"
                         + stolnRcvryDetails.get("complaint_type") + "' , (select OPERATOR_TYPE_ID  from user_profile where USERID =   " + rs.getString("user_id") + "  )  , (select OPERATOR_TYPE_NAME  from user_profile where USERID =   " + rs.getString("user_id") + "  )   , '" + rs.getString("actual_imei") + "' , '" + rs.getString("device_id_type") + "'  , '" + rs.getString("device_type") + "'        )";
 //                         }
-                device_greylist_History_db_qry = "insert into   greylist_db_history ( EXPIRY_DATE,modified_on ,  created_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type ,operation  ,   operator_id , operator_name ,actual_imei  , DEVICE_ID_type  , DEVICE_TYPE  )   "
+                device_greylist_History_db_qry = "insert into   GREY_LIST_HISTORY ( EXPIRY_DATE,modified_on ,  created_on , imei, user_id , txn_id , mode_type  , request_type, user_type  , complain_type ,operation  ,   operator_id , operator_name ,actual_imei  , DEVICE_ID_type  , DEVICE_TYPE  )   "
                         + "values(   " + expdate + " ,  " + dateFunction + ",       " + dateFunction + "," + "'" + rs.getString("imei_esn_meid")
                         + "'," + " ( select username from users where users.id=  "
                         + rs.getString("user_id") + "  )  ,  " + " '" + txnId + "', " + "'"
@@ -507,7 +506,7 @@ public class CEIRFeatureFileUploader {
         String defaultDays = null;
         try {
             stmt = conn.createStatement();
-            String qry = "select BLOCKING_TYPE , BLOCKING_TIME_PERIOD  from stolenand_recovery_mgmt where  txn_id  = '" + txnId + "' ";
+            String qry = "select BLOCKING_TYPE , BLOCKING_TIME_PERIOD  from STOLEN_AND_RECOVERY_TXN where  txn_id  = '" + txnId + "' ";
             logger.info("" + qry);
             rs = stmt.executeQuery(qry);
             while (rs.next()) {

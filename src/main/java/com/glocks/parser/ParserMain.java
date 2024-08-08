@@ -28,7 +28,7 @@ public class ParserMain {
                logger.info("...." + tableName);
 //               int raw_upload_set_no = 1;
                try {
-                    conn = new com.glocks.db.MySQLConnection().getConnection();
+                    conn = new com.glocks.configuration.MySQLConnection().getConnection();
                     CEIRParserMain ceir_parser_main = new CEIRParserMain();
 //                    ResultSet my_result_set = ceir_parser_main.operatorDetails(conn, tableName);
 //                    if (my_result_set.next()) {

@@ -50,21 +50,25 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
         </dependency>
-        
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.gl</groupId>-->
+        <!--            <artifactId>RuleEngine</artifactId>-->
+        <!--            <version>1.1</version>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>com.gl</groupId>
             <artifactId>Rule_engine</artifactId>
             <version>0.0.1-SNAPSHOT</version>
-            <scope></scope>
         </dependency>
-    
+
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
 
         <dependency>
-                  <groupId>com.github.ulisesbocchio</groupId>
+      <groupId>com.github.ulisesbocchio</groupId>
             <artifactId>jasypt-spring-boot</artifactId>    <!--  IF NOT WORKING MIGHT BE   -spring-boot-starter?-->
             <version>1.18</version>
             <type>jar</type>

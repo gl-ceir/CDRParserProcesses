@@ -1,4 +1,4 @@
-package com.glocks.db;
+package com.glocks.configuration;
 
 import java.sql.Connection;
 import java.sql.Statement;
